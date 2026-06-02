@@ -322,7 +322,7 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
     </div>
     <div class="form-row">
       <div class="field"><label>ชื่อบัญชี (หรือรหัสนักศึกษา)</label><input type="text" id="NewAccName" placeholder="เช่น 6710510269" maxlength="20"></div>
-      <div class="field"><label>รหัสผ่าน (PIN)</label><input type="password" id="NewAccPin" placeholder="ตั้งรหัสลับส่วนตัว" maxlength="6"></div>
+      <div class="field"><label>รหัสผ่าน (PIN)</label><input type="password" id="NewAccPin" placeholder="ตั้งรหัสลับส่วนตัว"></div>
     </div>
     <button class="btn-add" onclick="createNewAccount()">สร้างบัญชีเลย</button>
   </div>
@@ -407,6 +407,19 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
     <div class="help-sec"><h3>✏️ การจัดการแบบกลุ่ม</h3><p>เลื่อนลงมาที่ "รายละเอียดวิชา" ด้านล่าง กดปุ่ม ✏️ หรือ 🗑️ จากตรงนี้ ระบบจะทำการแก้ไขหรือลบวิชานั้นในทุกๆ วันที่มีเรียนให้พร้อมกันทันที</p></div>
     <div class="help-sec"><h3>🎯 โหมดโฟกัส & เส้นเวลา</h3><p>กดปุ่ม "🎯 โฟกัส" เพื่อหรี่สีวิชาวันอื่นๆ ลงให้เหลือแค่วันนี้ และจะปรากฏเส้นสีน้ำเงินเพื่อบอกเวลาปัจจุบัน</p></div>
     <button class="btn-add" onclick="closeHelp()">รับทราบและเข้าใจแล้ว!</button>
+  </div>
+</div>
+
+<div id="infoModal" class="modal">
+  <div class="modal-content" style="max-width: 350px; text-align: center;">
+    <span class="close-btn" onclick="closeInfoModal()">&times;</span>
+    <div id="infoColor" style="width: 48px; height: 48px; border-radius: 50%; margin: 0 auto 16px auto; box-shadow: 0 4px 12px rgba(0,0,0,0.1);"></div>
+    <h2 id="infoName" style="margin-bottom: 8px; justify-content: center; text-align: center; font-size: 20px; line-height: 1.3;">ชื่อวิชา</h2>
+    <p id="infoRoomTime" style="color: var(--text2); font-weight: 800; margin-bottom: 20px; font-size: 14px;">📍 ห้องเรียน | ⏰ เวลา</p>
+    
+    <div style="text-align: left; font-size: 13px; font-weight: 900; color: var(--text); margin-bottom: 8px;">🗓️ วันสอบ:</div>
+    <div id="infoExams" style="display: flex; flex-direction: column; gap: 10px;">
+      </div>
   </div>
 </div>
 
@@ -554,11 +567,49 @@ function closeFormModal() { document.getElementById('formModal').style.display =
 function openHelp() { document.getElementById('helpModal').style.display = 'flex'; }
 function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
 
+// ==========================================
+// ℹ️ ระบบกดดูรายละเอียดวิชา (Pop-up)
+// ==========================================
+function showSubjectDetails(idx) {
+  const s = subjects[idx];
+  document.getElementById('infoName').textContent = s.name;
+  document.getElementById('infoColor').style.background = s.bg;
+  document.getElementById('infoColor').style.border = `3px solid ${s.fg}`;
+  document.getElementById('infoRoomTime').textContent = `📍 ${s.room} | วัน${DAY_NAMES[s.day]} ${s.start}-${s.end}`;
+
+  const mid = getExamStatus(s.midtermDate, 'มิดเทอม');
+  const fin = getExamStatus(s.finalDate, 'ไฟนอล');
+
+  let examsHTML = '';
+  const makeTag = (exam) => {
+    let bg = 'var(--input-bg)'; let color = 'var(--text)'; let border = 'none';
+    if(exam.status === 'today') { bg = 'rgba(255,59,48,0.1)'; color = 'var(--danger)'; border = `1px solid var(--danger)`; }
+    else if(exam.status === 'past') { bg = 'var(--input-bg)'; color = 'var(--text2)'; border = `1px solid var(--border)`; }
+    else { bg = 'rgba(255,149,0,0.1)'; color = 'var(--warning)'; border = `1px solid var(--warning)`; }
+    return `<div style="padding: 12px; background: ${bg}; color: ${color}; border: ${border}; border-radius: 12px; font-weight: 800; font-size: 13.5px; text-align: left;">${exam.text}</div>`;
+  };
+
+  if(!s.midtermDate && !s.finalDate) {
+     examsHTML = '<div style="padding: 12px; background: var(--input-bg); border-radius: 12px; font-weight: 800; color: var(--text2); font-size: 13.5px;">✅ ไม่มีสอบ / ยังไม่กำหนดวัน</div>';
+  } else {
+     if(s.midtermDate && mid) examsHTML += makeTag(mid);
+     if(s.finalDate && fin) examsHTML += makeTag(fin);
+  }
+
+  document.getElementById('infoExams').innerHTML = examsHTML;
+  document.getElementById('infoModal').style.display = 'flex';
+}
+
+function closeInfoModal() {
+  document.getElementById('infoModal').style.display = 'none';
+}
+
 window.onclick = function(event) { 
   if (event.target == document.getElementById('formModal')) closeFormModal(); 
   if (event.target == document.getElementById('taskModal')) closeTaskModal(); 
   if (event.target == document.getElementById('helpModal')) closeHelp();
   if (event.target == document.getElementById('accountModal')) closeAccountModal();
+  if (event.target == document.getElementById('infoModal')) closeInfoModal(); // 👈 ปิด Modal รายละเอียดเมื่อกดข้างนอก
 }
 
 function renderAccountDropdown() {
@@ -690,12 +741,13 @@ function renderAll(){
         card.style.boxShadow = "-4px -4px 15px rgba(0,0,0,0.15)";
     }
 
+    // 🌟 เปลี่ยน onclick เพื่อเรียกใช้ Modal แทนการเลื่อนจอ
     card.innerHTML=`
       <div class="action-btns-mobile">
         <button class="btn-edit" onclick="event.stopPropagation();editSubject(${idx})">✏️</button>
         <button class="btn-del" onclick="event.stopPropagation();del(${idx})">🗑️</button>
       </div>
-      <div class="card-inner" onclick="document.getElementById('DetailsPanel').scrollIntoView({behavior: 'smooth'})" title="คลิกดูรายละเอียดวันสอบ">
+      <div class="card-inner" onclick="showSubjectDetails(${idx})" title="คลิกดูรายละเอียดวิชา">
         <div class="action-btns-desktop">
           <button class="btn-icon" title="แก้ไขคาบเรียนนี้" onclick="event.stopPropagation();editSubject(${idx})">✏️</button>
           <button class="btn-icon" title="ลบคาบเรียนนี้" onclick="event.stopPropagation();del(${idx})">×</button>
