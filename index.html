@@ -5,6 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>ตารางเรียน PSU & Task Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 <style>
 /* ========================================= */
@@ -13,7 +14,7 @@
 *{box-sizing:border-box;margin:0;padding:0; -webkit-tap-highlight-color: transparent;}
 :root{
   --min-w:1.6px;--header-w:90px;
-  --row-h:80px; /* 🌟 คืนความสูงแถวกลับมากะทัดรัดเหมือนเดิม */
+  --row-h:80px;
   --time-h:38px;
   --bg:#F8F9FA;--panel:#ffffff;--text:#1d1d1f;--text2:#58585d;--border:#f0f0f0;
   --input-bg:#f5f5f7;--btn-border:#e5e5ea;--hint:#d2d2d7;--grid-line:#f5f5f7;
@@ -79,20 +80,19 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
 .card:hover { z-index: 100 !important; box-shadow: 0 15px 30px rgba(0,0,0,0.15); transform: translateY(-4px) scale(1.03); }
 .card:focus-within{outline:2px solid var(--accent)}
 
-/* 🌟 จัดข้อความกลับมาอยู่กึ่งกลางสวยงาม */
 .card-inner {
   padding: 8px 10px;
   flex: 1;
   width: 100%;
   display: flex;
   flex-direction: column;
-  justify-content: center; /* จัดกึ่งกลาง */
+  justify-content: center;
   gap: 2px;
   position: relative;
   z-index: 2;
   background: inherit;
   transition: transform 0.25s ease;
-  cursor: pointer; /* เปลี่ยนเคอร์เซอร์เป็นรูปมือเมื่อชี้ */
+  cursor: pointer;
 }
 
 .card b {
@@ -308,16 +308,12 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
     </div>
     
     <div id="TaskListContainer">
-      <!-- การ์ดงานจะถูกสร้างตรงนี้ด้วย JavaScript -->
-    </div>
+      </div>
   </div>
 </div>
 
 <button class="fab" onclick="openFabAction()" id="MainFab">➕</button>
 
-<!-- ========================================= -->
-<!-- 📖 Modals ต่างๆ -->
-<!-- ========================================= -->
 <div id="accountModal" class="modal">
   <div class="modal-content" style="max-width: 400px; padding: 32px; border-radius: 28px;">
     <span class="close-btn" onclick="closeAccountModal()">&times;</span>
@@ -332,7 +328,6 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
   </div>
 </div>
 
-<!-- 📝 Modal เพิ่มวิชาเรียน -->
 <div id="formModal" class="modal">
   <div class="modal-content">
     <span class="close-btn" onclick="closeFormModal()">&times;</span>
@@ -370,7 +365,6 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
   </div>
 </div>
 
-<!-- 📦 Modal เพิ่มงาน (Task) -->
 <div id="taskModal" class="modal">
   <div class="modal-content">
     <span class="close-btn" onclick="closeTaskModal()">&times;</span>
@@ -422,7 +416,11 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
 // ==========================================
 // 🔗 ระบบเชื่อมต่อฐานข้อมูล Google Apps Script
 // ==========================================
+// ⚠️ เปลี่ยน URL ด้านล่างนี้เป็นของ Google Apps Script ล่าสุดของคุณ (ถ้ามีเปลี่ยน)
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbxRL1q3sNLT9u6tXLrVuhyfbMgNbIO6XkTdKZ5EndmPgFxyft6vA6dXmP4njyCkMFMz/exec";
+
+// 🌟 ตัวแปรเก็บรหัส LINE ประจำเครื่อง
+let myLineUserId = ""; 
 // ==========================================
 
 const PALETTES = [{bg:'#E6E6FA',fg:'#4B0082'},{bg:'#E0F2FE',fg:'#0369A1'},{bg:'#DCFCE7',fg:'#15803D'},{bg:'#FEF9C3',fg:'#A16207'},{bg:'#FCE7F3',fg:'#BE185D'},{bg:'#CCFBF1',fg:'#0F766E'},{bg:'#FFEDD5',fg:'#C2410C'},{bg:'#F3E8FF',fg:'#6B21A8'}];
@@ -441,6 +439,23 @@ let isFocusMode = false;
 
 let editTaskIndex = -1; 
 let currentView = 'schedule';
+
+// ==========================================
+// 🌟 ฟังก์ชันเริ่มต้นระบบ LINE LIFF 
+// ==========================================
+async function initLIFF() {
+    try {
+        // 👇 ก๊อปปี้ LIFF ID จากหน้าเว็บ LINE Developers มาใส่ตรงนี้ครับ!!
+        await liff.init({ liffId: "2010274088-XzAKwr2c" });
+        if (liff.isLoggedIn()) {
+            const profile = await liff.getProfile();
+            myLineUserId = profile.userId; // ดูดรหัส LINE มาเก็บไว้ในเครื่อง
+            console.log("LIFF Init Success: " + myLineUserId);
+        }
+    } catch (err) {
+        console.error("LIFF Init Error: ", err);
+    }
+}
 
 // ==========================================
 // SPA NAVIGATION (ระบบสลับหน้า)
@@ -593,7 +608,13 @@ async function syncToCloud() {
   try {
     const response = await fetch(CLOUD_URL, { 
       method: 'POST', 
-      body: JSON.stringify({ accountId: currentAccount, pin: currentPin, scheduleData: subjects, tasksData: tasks }) 
+      body: JSON.stringify({ 
+          accountId: currentAccount, 
+          pin: currentPin, 
+          scheduleData: subjects, 
+          tasksData: tasks,
+          lineUserId: myLineUserId  // 🌟 ส่งรหัส LINE ไปให้ Google Apps Script セฟอัตโนมัติ
+      }) 
     });
     const result = await response.json();
     if (result.status === "Error") showToast(`บันทึกไม่สำเร็จ รหัสผ่านผิด!`, 'error'); 
@@ -669,8 +690,6 @@ function renderAll(){
         card.style.boxShadow = "-4px -4px 15px rgba(0,0,0,0.15)";
     }
 
-    // 🌟 เอา renderExamTags(s, false) ทิ้งไป เพื่อซ่อนวันสอบในตารางหลัก
-    // 🌟 เพิ่มคำสั่ง onclick="..." เพื่อให้เลื่อนจอไปดูรายละเอียดด้านล่างทันทีที่กดการ์ด
     card.innerHTML=`
       <div class="action-btns-mobile">
         <button class="btn-edit" onclick="event.stopPropagation();editSubject(${idx})">✏️</button>
@@ -708,7 +727,6 @@ function renderAll(){
     groupedArray.forEach((group) => {
       group.meetings.sort((a,b) => { if (a.day !== b.day) return a.day - b.day; return a.startPOS - b.startPOS; });
       let meetingsHTML = group.meetings.map(m => { return `<div class="meeting-row"><span class="detail-tag">📅 วัน${DAY_NAMES[m.day]}</span><span class="detail-tag">⏰ ${m.start} - ${m.end}</span><span class="detail-tag">📍 ${m.room}</span></div>`; }).join('');
-      // 🌟 วันสอบจะถูกนำมาแสดงที่ Details ด้านล่างตรงนี้ที่เดียวเท่านั้นครับ!
       let examTags = renderExamTags(group.meetings[0], true);
       if (examTags) { meetingsHTML += `<div class="exam-tags-wrap" style="width: 100%; margin-top: 2px;">${examTags}</div>`; }
       const safeName = group.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
@@ -1009,6 +1027,7 @@ document.addEventListener('touchmove', e => {
 document.addEventListener('touchend', e => {
   if(ptrStart > 0 && ptrCurrent - ptrStart > 60 && window.scrollY === 0) {
     if(navigator.vibrate) navigator.vibrate(50); ptrIndicator.innerHTML = '⏳ กำลังซิงค์ข้อมูล...';
+    // ตอนดึงลงเพื่อ Refresh ให้ซิงค์ใหม่
     loadAccountData().then(()=>{ ptrIndicator.style.transform = `translateY(0)`; setTimeout(() => ptrIndicator.innerHTML = '⬇️ ดึงลงเพื่ออัปเดตตาราง', 300); });
   } else { ptrIndicator.style.transform = `translateY(0)`; }
   ptrStart = 0; ptrCurrent = 0;
@@ -1017,10 +1036,13 @@ document.addEventListener('touchend', e => {
 const gridSchedule = document.getElementById('Schedule');
 for(let i=0;i<16;i++){ const d=document.createElement('div'); d.className='time-lbl'; d.style.gridRow=1; d.style.gridColumn=(i*60)+2; d.textContent=String(i+8).padStart(2,'0')+':00'; gridSchedule.appendChild(d); }
 
-// Initialize Start
-renderSwatches(); renderAccountDropdown(); loadAccountData();
+// 🌟 เรียกใช้ฟังก์ชัน LIFF ทันทีที่เปิดหน้าเว็บ
+initLIFF().then(() => {
+    renderSwatches(); 
+    renderAccountDropdown(); 
+    loadAccountData(); // ดึงข้อมูลและอัปเดต LINE ID
+});
 
-// ปรับสถานะปุ่ม Focus ตอนเริ่มแอปให้ตรงกับค่าเริ่มต้น (ปิดโฟกัส)
 document.getElementById('focusBtn').style.opacity = isFocusMode ? '1' : '0.5';
 document.getElementById('focusBtn').style.background = isFocusMode ? 'rgba(0,102,204,0.1)' : 'var(--panel)';
 </script>
