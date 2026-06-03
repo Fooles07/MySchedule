@@ -7,6 +7,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script>
+window.onerror = function(msg, url, line) {
+    const hint = document.getElementById('hintText');
+    const spinner = document.getElementById('loaderSpinner');
+    if (hint) { 
+        if (spinner) spinner.style.display = 'none';
+        hint.style.color = 'red'; 
+        hint.innerHTML = "❌ พบข้อผิดพลาด (บรรทัดที่ " + line + ")<br><br>" + msg; 
+    }
+};
+</script>
+
 <style>
 /* ========================================= */
 /* 🎨 ตัวแปรสีและธีม (Premium Soft UI) */
@@ -397,13 +410,11 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
   </div>
 </div>
 
-<!-- 🌟 คู่มือการใช้งานแบบจัดเต็ม (รวมวิธีสมัคร + ทริคการใช้เว็บ) -->
 <div id="helpModal" class="modal">
   <div class="modal-content">
     <span class="close-btn" onclick="closeHelp()">&times;</span>
     <h2 style="font-size: 22px; color: var(--accent);">📖 คู่มือการใช้งาน (Super App)</h2>
     
-    <!-- 📌 หมวดที่ 1: การสมัครและผูกบัญชี LINE -->
     <div class="help-sec">
       <h3 style="color: var(--text);">📌 ขั้นตอนที่ 1: สมัครและผูกบัญชี</h3>
       <p style="margin-top: 6px; font-size: 14px; color: var(--text2); line-height: 1.6;">
@@ -413,7 +424,6 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
       </p>
     </div>
 
-    <!-- 📌 หมวดที่ 2: การคุยกับบอทสมศรี -->
     <div class="help-sec" style="background: rgba(0,102,204,0.05); padding: 12px; border-radius: 12px;">
       <h3 style="color: var(--accent);">💬 สั่งงานผ่านแชท LINE (สมศรี)</h3>
       <p style="margin-top: 6px; font-size: 14px; color: var(--text2); line-height: 1.6;">
@@ -424,7 +434,6 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
       </p>
     </div>
 
-    <!-- 📌 หมวดที่ 3: ทริคการใช้งานเว็บ (จากรูปเดิม) -->
     <div class="help-sec">
       <h3 style="color: var(--text);">➕ การเพิ่มวิชาหลายวัน</h3>
       <p style="margin-top: 6px; font-size: 14px; color: var(--text2); line-height: 1.6;">
@@ -480,48 +489,50 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
 <div id="toast-container"></div>
 
 <script>
-// ดักจับ Error เผื่อเว็บพัง จะได้รู้ว่าเกิดจากอะไร
-window.onerror = function(msg) {
-    const hint = document.getElementById('hintText');
-    if (hint) {
-        hint.style.color = 'red';
-        hint.textContent = "พบบั๊ก: " + msg + " (ลองกดรีเฟรชหน้าจอ 1 รอบ)";
-    }
-};
-
 // ==========================================
 // 🔗 ระบบเชื่อมต่อฐานข้อมูล Google Apps Script
 // ==========================================
-// ⚠️ เปลี่ยน URL ด้านล่างนี้เป็นของ Google Apps Script ล่าสุดของคุณ (ถ้ามีเปลี่ยน)
 const CLOUD_URL = "https://script.google.com/macros/s/AKfycbwJsJUSw0LcPdwe5i6P7JjG3vw3YhhP_TF3RSGiYahsVjM9aWLGxwMPjXPKawgZFS6h/exec";
-
-// 🌟 ตัวแปรเก็บรหัส LINE ประจำเครื่อง
 let myLineUserId = ""; 
-// ==========================================
 
 const PALETTES = [{bg:'#E6E6FA',fg:'#4B0082'},{bg:'#E0F2FE',fg:'#0369A1'},{bg:'#DCFCE7',fg:'#15803D'},{bg:'#FEF9C3',fg:'#A16207'},{bg:'#FCE7F3',fg:'#BE185D'},{bg:'#CCFBF1',fg:'#0F766E'},{bg:'#FFEDD5',fg:'#C2410C'},{bg:'#F3E8FF',fg:'#6B21A8'}];
 const DARK_PALETTES = [{bg:'#2d1f5e',fg:'#e9d5ff'},{bg:'#082f49',fg:'#bae6fd'},{bg:'#064e3b',fg:'#a7f3d0'},{bg:'#422006',fg:'#fde047'},{bg:'#500724',fg:'#fbcfe8'},{bg:'#042f2e',fg:'#99f6e4'},{bg:'#431407',fg:'#fed7aa'},{bg:'#3b0764',fg:'#e9d5ff'}];
 const DAY_NAMES = {2:'จันทร์', 3:'อังคาร', 4:'พุธ', 5:'พฤหัสบดี', 6:'ศุกร์'};
 
-let isDark = false; let selectedColor = null; 
+let isDark = false; 
+let selectedColor = null; 
 
-// 🌟 ระบบดึงข้อมูลบัญชี (เพิ่ม Try-Catch ป้องกันแอปพังถ้าแคชขยะติดมา)
-let accounts = [{ id: '6710510269', name: 'บัญชีเริ่มต้น', pin: '0000' }];
+// 🌟 ระบบจัดการหน่วยความจำให้เสถียร (กันบั๊กค้าง 100%)
+let accounts = [];
 try {
-    let savedAcc = localStorage.getItem('psu_account_list');
-    if (savedAcc) {
-        let parsed = JSON.parse(savedAcc);
-        if (parsed && parsed.length > 0) accounts = parsed;
+    let rawAccounts = localStorage.getItem('psu_account_list');
+    if (rawAccounts) {
+        let parsedData = JSON.parse(rawAccounts);
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
+            accounts = parsedData;
+        }
     }
-} catch(e) {
-    localStorage.removeItem('psu_account_list'); // ถ้าพังให้ล้างทิ้ง
+} catch (e) {
+    console.error("Local Storage Corrupted, Resetting...", e);
+    localStorage.removeItem('psu_account_list');
 }
-let currentAccount = localStorage.getItem('psu_current_account') || accounts[0].id;
+
+if (accounts.length === 0) {
+    accounts = [{ id: '6710510269', name: 'บัญชีเริ่มต้น', pin: '0000' }];
+    localStorage.setItem('psu_account_list', JSON.stringify(accounts));
+}
+
+let currentAccount = localStorage.getItem('psu_current_account');
+if (!currentAccount || !accounts.find(a => a.id === currentAccount)) {
+    currentAccount = accounts[0].id;
+    localStorage.setItem('psu_current_account', currentAccount);
+}
 
 let subjects = [];
 let tasks = []; 
 
-let editIndex = -1; let editGroupName = null; 
+let editIndex = -1; 
+let editGroupName = null; 
 let isFocusMode = false; 
 
 let editTaskIndex = -1; 
@@ -532,11 +543,10 @@ let currentView = 'schedule';
 // ==========================================
 async function initLIFF() {
     try {
-        // 👇 ก๊อปปี้ LIFF ID จากหน้าเว็บ LINE Developers มาใส่ตรงนี้ครับ!!
         await liff.init({ liffId: "2010274088-XzAKwr2c" });
         if (liff.isLoggedIn()) {
             const profile = await liff.getProfile();
-            myLineUserId = profile.userId; // ดูดรหัส LINE มาเก็บไว้ในเครื่อง
+            myLineUserId = profile.userId; 
             console.log("LIFF Init Success: " + myLineUserId);
         }
     } catch (err) {
@@ -567,42 +577,73 @@ function switchView(viewName) {
 }
 
 function openFabAction() {
-  if(currentView === 'schedule') openFormModal();
-  else openTaskModal();
+  if(currentView === 'schedule') {
+      openFormModal();
+  } else {
+      openTaskModal();
+  }
 }
 
 function showToast(message, type = 'success') {
   const container = document.getElementById('toast-container');
-  const toast = document.createElement('div'); toast.className = `toast ${type}`;
-  toast.innerHTML = `<span>${type === 'success' ? '✅' : type === 'error' ? '🚨' : '⚠️'}</span> <span>${message}</span>`;
+  const toast = document.createElement('div'); 
+  toast.className = 'toast ' + type;
+  
+  let icon = '✅';
+  if (type === 'error') icon = '🚨';
+  if (type === 'info') icon = 'ℹ️';
+  if (type === 'warning') icon = '⚠️';
+  
+  toast.innerHTML = '<span>' + icon + '</span> <span>' + message + '</span>';
   container.appendChild(toast);
-  setTimeout(() => { toast.classList.add('fade-out'); toast.addEventListener('animationend', () => toast.remove()); }, 3000);
+  setTimeout(() => { 
+      toast.classList.add('fade-out'); 
+      toast.addEventListener('animationend', () => toast.remove()); 
+  }, 3000);
 }
 
 function updateTimelineAndFocus() {
-  const now = new Date(); const day = now.getDay(); const hour = now.getHours(); const min = now.getMinutes();
+  const now = new Date(); 
+  const day = now.getDay(); 
+  const hour = now.getHours(); 
+  const min = now.getMinutes();
   let targetDayRow = (day >= 1 && day <= 5) ? day + 1 : -1;
 
   document.querySelectorAll('.card').forEach(card => {
     if (isFocusMode && targetDayRow !== -1) {
-      if (parseInt(card.style.gridRow) === targetDayRow) card.classList.remove('dimmed'); else card.classList.add('dimmed');
-    } else { card.classList.remove('dimmed'); }
+      if (parseInt(card.style.gridRow) === targetDayRow) {
+          card.classList.remove('dimmed'); 
+      } else {
+          card.classList.add('dimmed');
+      }
+    } else { 
+        card.classList.remove('dimmed'); 
+    }
   });
   
   for (let i = 2; i <= 6; i++) {
     const lbl = document.getElementById('lbl-' + i);
     if (lbl) {
       if (isFocusMode && targetDayRow !== -1) {
-        if (i === targetDayRow) lbl.classList.remove('dimmed'); else lbl.classList.add('dimmed');
-      } else { lbl.classList.remove('dimmed'); }
+        if (i === targetDayRow) {
+            lbl.classList.remove('dimmed'); 
+        } else {
+            lbl.classList.add('dimmed');
+        }
+      } else { 
+          lbl.classList.remove('dimmed'); 
+      }
     }
   }
 
   const timeline = document.getElementById('CurrentTimeLine');
   const totalMins = (hour - 8) * 60 + min;
   if (totalMins >= 0 && totalMins <= 900 && targetDayRow !== -1) {
-    timeline.style.display = 'block'; timeline.style.left = `calc(var(--header-w) + ${totalMins} * var(--min-w))`;
-  } else { timeline.style.display = 'none'; }
+    timeline.style.display = 'block'; 
+    timeline.style.left = 'calc(var(--header-w) + ' + totalMins + ' * var(--min-w))';
+  } else { 
+      timeline.style.display = 'none'; 
+  }
 }
 
 function toggleFocusMode() {
@@ -615,18 +656,40 @@ function toggleFocusMode() {
 }
 setInterval(updateTimelineAndFocus, 60000);
 
-function openAccountModal() { document.getElementById('accountModal').style.display = 'flex'; }
-function closeAccountModal() { document.getElementById('accountModal').style.display = 'none'; }
+function openAccountModal() { 
+    document.getElementById('accountModal').style.display = 'flex'; 
+}
+
+function closeAccountModal() { 
+    document.getElementById('accountModal').style.display = 'none'; 
+}
+
 function createNewAccount() {
-  const name = document.getElementById('NewAccName').value.trim(); const pin = document.getElementById('NewAccPin').value.trim();
-  if (!name || !pin) { showToast('กรุณากรอกข้อมูลให้ครบก่อนนะครับ', 'warning'); return; }
-  if(accounts.find(a => a.id === name)) { showToast('ชื่อบัญชีนี้มีอยู่แล้วครับ', 'error'); return; }
+  const name = document.getElementById('NewAccName').value.trim(); 
+  const pin = document.getElementById('NewAccPin').value.trim();
+  
+  if (!name || !pin) { 
+      showToast('กรุณากรอกข้อมูลให้ครบก่อนนะครับ', 'warning'); 
+      return; 
+  }
+  
+  if(accounts.find(a => a.id === name)) { 
+      showToast('ชื่อบัญชีนี้มีอยู่แล้วครับ', 'error'); 
+      return; 
+  }
+  
   accounts.push({ id: name, name: name, pin: pin });
   localStorage.setItem('psu_account_list', JSON.stringify(accounts));
-  currentAccount = name; localStorage.setItem('psu_current_account', currentAccount);
-  closeAccountModal(); renderAccountDropdown(); loadAccountData();
+  currentAccount = name; 
+  localStorage.setItem('psu_current_account', currentAccount);
+  
+  closeAccountModal(); 
+  renderAccountDropdown(); 
+  loadAccountData();
+  
   showToast('ยินดีต้อนรับสู่ตารางเรียนใหม่! ✨', 'success');
-  document.getElementById('NewAccName').value = ''; document.getElementById('NewAccPin').value = '';
+  document.getElementById('NewAccName').value = ''; 
+  document.getElementById('NewAccPin').value = '';
 }
 
 function openFormModal() { 
@@ -637,9 +700,19 @@ function openFormModal() {
     document.getElementById('addBtn').style.background = 'var(--accent)'; 
   }
 }
-function closeFormModal() { document.getElementById('formModal').style.display = 'none'; resetEditMode(); }
-function openHelp() { document.getElementById('helpModal').style.display = 'flex'; }
-function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
+
+function closeFormModal() { 
+    document.getElementById('formModal').style.display = 'none'; 
+    resetEditMode(); 
+}
+
+function openHelp() { 
+    document.getElementById('helpModal').style.display = 'flex'; 
+}
+
+function closeHelp() { 
+    document.getElementById('helpModal').style.display = 'none'; 
+}
 
 // ==========================================
 // ℹ️ ระบบกดดูรายละเอียดวิชา (Pop-up)
@@ -648,26 +721,40 @@ function showSubjectDetails(idx) {
   const s = subjects[idx];
   document.getElementById('infoName').textContent = s.name;
   document.getElementById('infoColor').style.background = s.bg;
-  document.getElementById('infoColor').style.border = `3px solid ${s.fg}`;
-  document.getElementById('infoRoomTime').textContent = `📍 ${s.room} | วัน${DAY_NAMES[s.day]} ${s.start}-${s.end}`;
+  document.getElementById('infoColor').style.border = "3px solid " + s.fg;
+  document.getElementById('infoRoomTime').textContent = "📍 " + s.room + " | วัน" + DAY_NAMES[s.day] + " " + s.start + "-" + s.end;
 
   const mid = getExamStatus(s.midtermDate, 'มิดเทอม');
   const fin = getExamStatus(s.finalDate, 'ไฟนอล');
 
   let examsHTML = '';
-  const makeTag = (exam) => {
-    let bg = 'var(--input-bg)'; let color = 'var(--text)'; let border = 'none';
-    if(exam.status === 'today') { bg = 'rgba(255,59,48,0.1)'; color = 'var(--danger)'; border = `1px solid var(--danger)`; }
-    else if(exam.status === 'past') { bg = 'var(--input-bg)'; color = 'var(--text2)'; border = `1px solid var(--border)`; }
-    else { bg = 'rgba(255,149,0,0.1)'; color = 'var(--warning)'; border = `1px solid var(--warning)`; }
-    return `<div style="padding: 12px; background: ${bg}; color: ${color}; border: ${border}; border-radius: 12px; font-weight: 800; font-size: 13.5px; text-align: left;">${exam.text}</div>`;
-  };
+  
+  function makeTag(exam) {
+      if(!exam) return '';
+      let bg = 'var(--input-bg)'; 
+      let color = 'var(--text)'; 
+      let border = 'none';
+      if (exam.status === 'today') { 
+          bg = 'rgba(255,59,48,0.1)'; 
+          color = 'var(--danger)'; 
+          border = '1px solid var(--danger)'; 
+      } else if (exam.status === 'past') { 
+          bg = 'var(--input-bg)'; 
+          color = 'var(--text2)'; 
+          border = '1px solid var(--border)'; 
+      } else { 
+          bg = 'rgba(255,149,0,0.1)'; 
+          color = 'var(--warning)'; 
+          border = '1px solid var(--warning)'; 
+      }
+      return '<div style="padding: 12px; background: ' + bg + '; color: ' + color + '; border: ' + border + '; border-radius: 12px; font-weight: 800; font-size: 13.5px; text-align: left;">' + exam.text + '</div>';
+  }
 
-  if(!s.midtermDate && !s.finalDate) {
+  if (!s.midtermDate && !s.finalDate) {
      examsHTML = '<div style="padding: 12px; background: var(--input-bg); border-radius: 12px; font-weight: 800; color: var(--text2); font-size: 13.5px;">✅ ไม่มีสอบ / ยังไม่กำหนดวัน</div>';
   } else {
-     if(s.midtermDate && mid) examsHTML += makeTag(mid);
-     if(s.finalDate && fin) examsHTML += makeTag(fin);
+     if (s.midtermDate && mid) examsHTML += makeTag(mid);
+     if (s.finalDate && fin) examsHTML += makeTag(fin);
   }
 
   document.getElementById('infoExams').innerHTML = examsHTML;
@@ -683,39 +770,64 @@ window.onclick = function(event) {
   if (event.target == document.getElementById('taskModal')) closeTaskModal(); 
   if (event.target == document.getElementById('helpModal')) closeHelp();
   if (event.target == document.getElementById('accountModal')) closeAccountModal();
-  if (event.target == document.getElementById('infoModal')) closeInfoModal(); // 👈 ปิด Modal รายละเอียดเมื่อกดข้างนอก
+  if (event.target == document.getElementById('infoModal')) closeInfoModal(); 
 }
 
 function renderAccountDropdown() {
-  const select = document.getElementById('AccountSelector'); select.innerHTML = '';
-  accounts.forEach(acc => { const opt = document.createElement('option'); opt.value = acc.id; opt.textContent = acc.name; if (acc.id === currentAccount) opt.selected = true; select.appendChild(opt); });
+  const select = document.getElementById('AccountSelector'); 
+  select.innerHTML = '';
+  accounts.forEach(acc => { 
+      const opt = document.createElement('option'); 
+      opt.value = acc.id; 
+      opt.textContent = acc.name; 
+      if (acc.id === currentAccount) opt.selected = true; 
+      select.appendChild(opt); 
+  });
 }
 
 function setLoadingState(isLoading, message = '') {
-  const hintDiv = document.getElementById('hint'); const spinner = document.getElementById('loaderSpinner'); const text = document.getElementById('hintText');
-  if (isLoading) { hintDiv.style.display = 'flex'; spinner.style.display = 'block'; text.textContent = message || 'กำลังโหลด...'; } 
-  else { spinner.style.display = 'none'; }
+  const hintDiv = document.getElementById('hint'); 
+  const spinner = document.getElementById('loaderSpinner'); 
+  const text = document.getElementById('hintText');
+  if (isLoading) { 
+      hintDiv.style.display = 'flex'; 
+      spinner.style.display = 'block'; 
+      text.style.color = 'var(--text2)';
+      text.textContent = message || 'กำลังโหลด...'; 
+  } else { 
+      spinner.style.display = 'none'; 
+  }
 }
 
 async function loadAccountData() {
   setLoadingState(true, 'กำลังซิงค์คลาวด์...');
-  document.querySelectorAll('.card').forEach(c=>c.remove());
+  document.querySelectorAll('.card').forEach(c => c.remove());
+  
   const accIndex = accounts.findIndex(a => a.id === currentAccount);
   const currentPin = accIndex !== -1 ? accounts[accIndex].pin : "";
   
   try {
     const response = await fetch(CLOUD_URL + '?account=' + encodeURIComponent(currentAccount) + '&pin=' + encodeURIComponent(currentPin));
     const result = await response.json();
+    
     if (result.status === "Error") {
-      let retryPin = prompt(`🔒 รหัสผ่านไม่ถูกต้อง!\nบัญชี: "${currentAccount}"\n\nกรุณากรอกรหัสผ่านอีกครั้ง:`);
+      let retryPin = prompt('🔒 รหัสผ่านไม่ถูกต้อง!\nบัญชี: ' + currentAccount + '\n\nกรุณากรอกรหัสผ่านอีกครั้ง:');
       if (retryPin !== null) {
-        if (accIndex !== -1) { accounts[accIndex].pin = retryPin.trim(); localStorage.setItem('psu_account_list', JSON.stringify(accounts)); }
+        if (accIndex !== -1) { 
+            accounts[accIndex].pin = retryPin.trim(); 
+            localStorage.setItem('psu_account_list', JSON.stringify(accounts)); 
+        }
         return loadAccountData(); 
-      } else { setLoadingState(false); document.getElementById('hintText').textContent = '🔒 เข้าถึงไม่ได้ (รหัสผ่านผิด)'; subjects = []; tasks = []; }
+      } else { 
+          setLoadingState(false); 
+          document.getElementById('hintText').textContent = '🔒 เข้าถึงไม่ได้ (รหัสผ่านผิด)'; 
+          subjects = []; 
+          tasks = []; 
+      }
     } else { 
       subjects = result.data || []; 
       tasks = result.tasksData || [];
-      showToast(`โหลดตารางของ "${accounts[accIndex].name}" เรียบร้อย`, 'success'); 
+      showToast('โหลดตารางของ ' + accounts[accIndex].name + ' เรียบร้อย', 'success'); 
     }
   } catch (error) { 
     setLoadingState(false); 
@@ -724,14 +836,19 @@ async function loadAccountData() {
     try {
         let savedTasks = localStorage.getItem('psu_tasks_' + currentAccount);
         tasks = savedTasks ? JSON.parse(savedTasks) : []; 
-    } catch(e) { tasks = []; }
+    } catch(e) { 
+        tasks = []; 
+    }
   }
   
-  resetEditMode(); renderAll(); renderTasks();
+  resetEditMode(); 
+  renderAll(); 
+  renderTasks();
 }
 
 async function syncToCloud() {
-  const acc = accounts.find(a => a.id === currentAccount); const currentPin = acc ? acc.pin : "";
+  const acc = accounts.find(a => a.id === currentAccount); 
+  const currentPin = acc ? acc.pin : "";
   localStorage.setItem('psu_tasks_' + currentAccount, JSON.stringify(tasks));
   
   try {
@@ -742,63 +859,103 @@ async function syncToCloud() {
           pin: currentPin, 
           scheduleData: subjects, 
           tasksData: tasks,
-          lineUserId: myLineUserId  // 🌟 ส่งรหัส LINE ไปให้ Google Apps Script セฟอัตโนมัติ
+          lineUserId: myLineUserId  
       }) 
     });
     const result = await response.json();
-    if (result.status === "Error") showToast(`บันทึกไม่สำเร็จ รหัสผ่านผิด!`, 'error'); 
-    else showToast('อัปเดตข้อมูลขึ้น Cloud สำเร็จ!', 'success');
+    if (result.status === "Error") {
+        showToast('บันทึกไม่สำเร็จ รหัสผ่านผิด!', 'error'); 
+    } else {
+        showToast('อัปเดตข้อมูลขึ้น Cloud สำเร็จ!', 'success');
+    }
   } catch (error) { 
     showToast('อัปเดตออฟไลน์เรียบร้อย (ไม่สามารถต่อ Cloud ได้)', 'info'); 
   }
 }
 
-function switchAccount() { currentAccount = document.getElementById('AccountSelector').value; localStorage.setItem('psu_current_account', currentAccount); loadAccountData(); }
+function switchAccount() { 
+    currentAccount = document.getElementById('AccountSelector').value; 
+    localStorage.setItem('psu_current_account', currentAccount); 
+    loadAccountData(); 
+}
+
 function deleteAccount() {
-  if (accounts.length <= 1) return showToast('ต้องมีอย่างน้อย 1 บัญชี', 'warning');
-  if (confirm(`นำบัญชี "${currentAccount}" ออกจากเครื่องนี้ใช่ไหม?`)) {
-    accounts = accounts.filter(a => a.id !== currentAccount); localStorage.setItem('psu_account_list', JSON.stringify(accounts));
-    currentAccount = accounts[0].id; localStorage.setItem('psu_current_account', currentAccount);
-    renderAccountDropdown(); loadAccountData(); showToast('ลบบัญชีแล้ว', 'success');
+  if (accounts.length <= 1) {
+      showToast('ต้องมีอย่างน้อย 1 บัญชี', 'warning');
+      return;
+  }
+  if (confirm('นำบัญชี "' + currentAccount + '" ออกจากเครื่องนี้ใช่ไหม?')) {
+    accounts = accounts.filter(a => a.id !== currentAccount); 
+    localStorage.setItem('psu_account_list', JSON.stringify(accounts));
+    currentAccount = accounts[0].id; 
+    localStorage.setItem('psu_current_account', currentAccount);
+    renderAccountDropdown(); 
+    loadAccountData(); 
+    showToast('ลบบัญชีแล้ว', 'success');
   }
 }
 
 function getExamStatus(examDateStr, label) {
   if (!examDateStr) return null;
-  const today = new Date(); today.setHours(0,0,0,0);
-  const eDate = new Date(examDateStr); eDate.setHours(0,0,0,0);
+  const today = new Date(); 
+  today.setHours(0,0,0,0);
+  const eDate = new Date(examDateStr); 
+  eDate.setHours(0,0,0,0);
   const diffDays = Math.ceil((eDate - today) / (1000 * 60 * 60 * 24));
-  const d = eDate.getDate().toString().padStart(2,'0'); const m = (eDate.getMonth()+1).toString().padStart(2,'0'); const y = eDate.getFullYear();
-  const dateTxt = `${d}/${m}/${y}`;
-  if (diffDays > 0) return { text: `⏳ ${label} ${dateTxt} (อีก ${diffDays} วัน)`, status: 'upcoming' };
-  else if (diffDays === 0) return { text: `🚨 ${label} วันนี้!`, status: 'today' };
-  else return { text: `✅ ${label} เสร็จแล้ว`, status: 'past' };
+  const d = eDate.getDate().toString().padStart(2,'0'); 
+  const m = (eDate.getMonth()+1).toString().padStart(2,'0'); 
+  const y = eDate.getFullYear();
+  const dateTxt = d + '/' + m + '/' + y;
+  
+  if (diffDays > 0) {
+      return { text: "⏳ " + label + " " + dateTxt + " (อีก " + diffDays + " วัน)", status: 'upcoming' };
+  } else if (diffDays === 0) {
+      return { text: "🚨 " + label + " วันนี้!", status: 'today' };
+  } else {
+      return { text: "✅ " + label + " เสร็จแล้ว", status: 'past' };
+  }
 }
 
 function renderExamTags(m, isDetail = false) {
-  let html = ''; let mid = getExamStatus(m.midtermDate, 'มิดเทอม'); let fin = getExamStatus(m.finalDate, 'ไฟนอล');
-  const makeTag = (exam) => {
+  let html = ''; 
+  let mid = getExamStatus(m.midtermDate, 'มิดเทอม'); 
+  let fin = getExamStatus(m.finalDate, 'ไฟนอล');
+  
+  function makeTag(exam) {
     if(!exam) return '';
-    let baseClass = isDetail ? 'detail-tag' : 'exam-tag'; let extraStyle = '';
-    if(exam.status === 'today') extraStyle = isDetail ? 'background:rgba(255,59,48,0.1); color:var(--danger); border:1px solid var(--danger);' : 'background:var(--danger); color:#fff; border-color:var(--danger);';
-    else if(exam.status === 'past') extraStyle = 'opacity:0.6;';
-    else extraStyle = isDetail ? 'background:rgba(255,149,0,0.1); color:var(--warning); border:1px solid var(--warning);'; 
-    return `<span class="${baseClass}" style="${extraStyle}">${exam.text}</span>`;
-  };
-  html += makeTag(mid) + makeTag(fin); return html;
+    let baseClass = isDetail ? 'detail-tag' : 'exam-tag'; 
+    let extraStyle = '';
+    if (exam.status === 'today') {
+        extraStyle = isDetail ? 'background:rgba(255,59,48,0.1); color:var(--danger); border:1px solid var(--danger);' : 'background:var(--danger); color:#fff; border-color:var(--danger);';
+    } else if (exam.status === 'past') {
+        extraStyle = 'opacity:0.6;';
+    } else {
+        extraStyle = isDetail ? 'background:rgba(255,149,0,0.1); color:var(--warning); border:1px solid var(--warning);' : ''; 
+    }
+    return '<span class="' + baseClass + '" style="' + extraStyle + '">' + exam.text + '</span>';
+  }
+  
+  html += makeTag(mid) + makeTag(fin); 
+  return html;
 }
 
 function renderAll(){
   const grid = document.getElementById('Schedule');
-  document.querySelectorAll('.card').forEach(c=>c.remove());
-  const hintDiv = document.getElementById('hint'); const hintText = document.getElementById('hintText');
+  document.querySelectorAll('.card').forEach(c => c.remove());
+  const hintDiv = document.getElementById('hint'); 
+  const hintText = document.getElementById('hintText');
+  
   if (subjects.length === 0 && !hintText.textContent.includes('🔒') && !hintText.textContent.includes('❌')) {
-    setLoadingState(false); hintDiv.style.display = 'flex'; hintText.textContent = 'กดปุ่ม + มุมขวาล่างเพื่อเพิ่มวิชาเลยครับ';
-  } else if (subjects.length > 0) { hintDiv.style.display = 'none'; }
+    setLoadingState(false); 
+    hintDiv.style.display = 'flex'; 
+    hintText.textContent = 'กดปุ่ม + มุมขวาล่างเพื่อเพิ่มวิชาเลยครับ';
+  } else if (subjects.length > 0) { 
+      hintDiv.style.display = 'none'; 
+  }
   
   let placedCards = []; 
 
-  subjects.forEach((s,idx)=>{
+  subjects.forEach((s, idx) => {
     let overlapCount = 0;
     placedCards.forEach(p => {
        if (p.day == s.day && !(s.startPOS >= p.endPOS || s.endPOS <= p.startPOS)) {
@@ -807,9 +964,13 @@ function renderAll(){
     });
     placedCards.push({day: s.day, startPOS: s.startPOS, endPOS: s.endPOS});
 
-    const card=document.createElement('div'); card.className='card';
-    card.style.background=s.bg; card.style.color=s.fg; card.style.borderLeft=`4px solid ${s.fg}`;
-    card.style.gridRow=s.day; card.style.gridColumn=`${s.startPOS}/${s.endPOS}`;
+    const card = document.createElement('div'); 
+    card.className = 'card';
+    card.style.background = s.bg; 
+    card.style.color = s.fg; 
+    card.style.borderLeft = "4px solid " + s.fg;
+    card.style.gridRow = s.day; 
+    card.style.gridColumn = s.startPOS + "/" + s.endPOS;
     card.style.order = (parseInt(s.day) * 1000) + parseInt(s.startPOS);
 
     if (overlapCount > 0) {
@@ -819,48 +980,79 @@ function renderAll(){
         card.style.boxShadow = "-4px -4px 15px rgba(0,0,0,0.15)";
     }
 
-    // 🌟 เปลี่ยน onclick เพื่อเรียกใช้ Modal แทนการเลื่อนจอ
-    card.innerHTML=`
+    card.innerHTML = `
       <div class="action-btns-mobile">
-        <button class="btn-edit" onclick="event.stopPropagation();editSubject(${idx})">✏️</button>
-        <button class="btn-del" onclick="event.stopPropagation();del(${idx})">🗑️</button>
+        <button class="btn-edit" onclick="event.stopPropagation(); editSubject(${idx})">✏️</button>
+        <button class="btn-del" onclick="event.stopPropagation(); del(${idx})">🗑️</button>
       </div>
       <div class="card-inner" onclick="showSubjectDetails(${idx})" title="คลิกดูรายละเอียดวิชา">
         <div class="action-btns-desktop">
-          <button class="btn-icon" title="แก้ไขคาบเรียนนี้" onclick="event.stopPropagation();editSubject(${idx})">✏️</button>
-          <button class="btn-icon" title="ลบคาบเรียนนี้" onclick="event.stopPropagation();del(${idx})">×</button>
+          <button class="btn-icon" title="แก้ไขคาบเรียนนี้" onclick="event.stopPropagation(); editSubject(${idx})">✏️</button>
+          <button class="btn-icon" title="ลบคาบเรียนนี้" onclick="event.stopPropagation(); del(${idx})">×</button>
         </div>
         <b>${s.name}</b><span>${s.room}</span><small>${s.start}–${s.end}</small>
       </div>
     `;
+    
     grid.appendChild(card);
-    const inner = card.querySelector('.card-inner'); let startX = 0;
+    const inner = card.querySelector('.card-inner'); 
+    let startX = 0;
     inner.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive:true});
-    inner.addEventListener('touchmove', e => { let diff = startX - e.touches[0].clientX; if (diff > 40) card.classList.add('swiped'); else if (diff < -40) card.classList.remove('swiped'); }, {passive:true});
+    inner.addEventListener('touchmove', e => { 
+        let diff = startX - e.touches[0].clientX; 
+        if (diff > 40) {
+            card.classList.add('swiped'); 
+        } else if (diff < -40) {
+            card.classList.remove('swiped'); 
+        }
+    }, {passive:true});
   });
 
-  const detailsPanel = document.getElementById('DetailsPanel'); const subjectList = document.getElementById('SubjectList'); const subjectCount = document.getElementById('SubjectCount');
+  const detailsPanel = document.getElementById('DetailsPanel'); 
+  const subjectList = document.getElementById('SubjectList'); 
+  const subjectCount = document.getElementById('SubjectCount');
+  
   subjectList.innerHTML = '';
-  if (subjects.length === 0) { detailsPanel.style.display = 'none'; } 
-  else {
+  
+  if (subjects.length === 0) { 
+      detailsPanel.style.display = 'none'; 
+  } else {
     detailsPanel.style.display = 'block';
     let groupedSubjects = {};
     subjects.forEach(s => {
       let key = s.name.trim();
-      if (!groupedSubjects[key]) { groupedSubjects[key] = { name: key, bg: s.bg, fg: s.fg, earliestDay: s.day, earliestStart: s.startPOS, meetings: [] }; } 
-      else { if (s.day < groupedSubjects[key].earliestDay) { groupedSubjects[key].earliestDay = s.day; groupedSubjects[key].earliestStart = s.startPOS; } }
+      if (!groupedSubjects[key]) { 
+          groupedSubjects[key] = { name: key, bg: s.bg, fg: s.fg, earliestDay: s.day, earliestStart: s.startPOS, meetings: [] }; 
+      } else { 
+          if (s.day < groupedSubjects[key].earliestDay) { 
+              groupedSubjects[key].earliestDay = s.day; 
+              groupedSubjects[key].earliestStart = s.startPOS; 
+          } 
+      }
       groupedSubjects[key].meetings.push({ day: s.day, start: s.start, end: s.end, room: s.room, startPOS: s.startPOS, midtermDate: s.midtermDate, finalDate: s.finalDate });
     });
     
     let groupedArray = Object.values(groupedSubjects).sort((a, b) => { return a.name.localeCompare(b.name, 'th'); });
     subjectCount.textContent = groupedArray.length + ' วิชา';
+    
     groupedArray.forEach((group) => {
-      group.meetings.sort((a,b) => { if (a.day !== b.day) return a.day - b.day; return a.startPOS - b.startPOS; });
-      let meetingsHTML = group.meetings.map(m => { return `<div class="meeting-row"><span class="detail-tag">📅 วัน${DAY_NAMES[m.day]}</span><span class="detail-tag">⏰ ${m.start} - ${m.end}</span><span class="detail-tag">📍 ${m.room}</span></div>`; }).join('');
+      group.meetings.sort((a,b) => { 
+          if (a.day !== b.day) return a.day - b.day; 
+          return a.startPOS - b.startPOS; 
+      });
+      
+      let meetingsHTML = group.meetings.map(m => { 
+          return '<div class="meeting-row"><span class="detail-tag">📅 วัน' + DAY_NAMES[m.day] + '</span><span class="detail-tag">⏰ ' + m.start + ' - ' + m.end + '</span><span class="detail-tag">📍 ' + m.room + '</span></div>'; 
+      }).join('');
+      
       let examTags = renderExamTags(group.meetings[0], true);
-      if (examTags) { meetingsHTML += `<div class="exam-tags-wrap" style="width: 100%; margin-top: 2px;">${examTags}</div>`; }
+      if (examTags) { 
+          meetingsHTML += '<div class="exam-tags-wrap" style="width: 100%; margin-top: 2px;">' + examTags + '</div>'; 
+      }
+      
       const safeName = group.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-      const item = document.createElement('div'); item.className = 'detail-item';
+      const item = document.createElement('div'); 
+      item.className = 'detail-item';
       item.innerHTML = `
         <div class="detail-color" style="background:${group.bg}; border: 2px solid ${group.fg};"></div>
         <div class="detail-info"><div class="detail-name">${group.name}</div><div class="detail-sub">${meetingsHTML}</div></div>
@@ -884,108 +1076,231 @@ function toggleSeparateTimes() {
 function renderSeparateTimeInputs() {
   const container = document.getElementById('SeparateTimeContainer');
   const checkedDays = Array.from(document.querySelectorAll('input[name="SubDays"]:checked')).map(cb => cb.value);
-  if (checkedDays.length === 0) { container.innerHTML = '<span style="font-size:12px; color:var(--text2); text-align:center;">กรุณาเลือกวันเรียนด้านบนก่อนครับ</span>'; return; }
+  if (checkedDays.length === 0) { 
+      container.innerHTML = '<span style="font-size:12px; color:var(--text2); text-align:center;">กรุณาเลือกวันเรียนด้านบนก่อนครับ</span>'; 
+      return; 
+  }
+  
   let html = '';
   checkedDays.forEach(d => {
-      let existingStart = document.getElementById(`start_day_${d}`)?.value || document.getElementById('StartTime').value || '08:00';
-      let existingEnd = document.getElementById(`end_day_${d}`)?.value || document.getElementById('EndTime').value || '09:30';
-      html += `
-      <div class="separate-time-row">
-         <label>วัน${DAY_NAMES[d]}</label>
-         <input type="time" id="start_day_${d}" value="${existingStart}">
-         <span style="color:var(--text2); margin: 0 4px;">-</span>
-         <input type="time" id="end_day_${d}" value="${existingEnd}">
-      </div>`;
+      let existingStartObj = document.getElementById('start_day_' + d);
+      let existingStart = existingStartObj ? existingStartObj.value : (document.getElementById('StartTime').value || '08:00');
+      
+      let existingEndObj = document.getElementById('end_day_' + d);
+      let existingEnd = existingEndObj ? existingEndObj.value : (document.getElementById('EndTime').value || '09:30');
+      
+      html += '<div class="separate-time-row">' +
+         '<label>วัน' + DAY_NAMES[d] + '</label>' +
+         '<input type="time" id="start_day_' + d + '" value="' + existingStart + '">' +
+         '<span style="color:var(--text2); margin: 0 4px;">-</span>' +
+         '<input type="time" id="end_day_' + d + '" value="' + existingEnd + '">' +
+      '</div>';
   });
   container.innerHTML = html;
 }
 
-document.querySelectorAll('input[name="SubDays"]').forEach(cb => { cb.addEventListener('change', () => { if (document.getElementById('SeparateTimeToggle').checked) renderSeparateTimeInputs(); }); });
+document.querySelectorAll('input[name="SubDays"]').forEach(cb => { 
+    cb.addEventListener('change', () => { 
+        if (document.getElementById('SeparateTimeToggle').checked) renderSeparateTimeInputs(); 
+    }); 
+});
 
 function editGroup(name) {
   const group = subjects.filter(s => s.name === name);
   if(group.length === 0) return;
   const s = group[0];
-  document.getElementById('SubName').value = s.name; document.getElementById('SubRoom').value = s.room;
-  document.getElementById('MidtermDate').value = s.midtermDate || ''; document.getElementById('FinalDate').value = s.finalDate || '';
+  
+  document.getElementById('SubName').value = s.name; 
+  document.getElementById('SubRoom').value = s.room;
+  document.getElementById('MidtermDate').value = s.midtermDate || ''; 
+  document.getElementById('FinalDate').value = s.finalDate || '';
+  
   document.querySelectorAll('input[name="SubDays"]').forEach(cb => cb.checked = false);
-  group.forEach(item => { const cb = document.querySelector(`input[name="SubDays"][value="${item.day}"]`); if(cb) cb.checked = true; });
+  group.forEach(item => { 
+      const cb = document.querySelector('input[name="SubDays"][value="' + item.day + '"]'); 
+      if(cb) cb.checked = true; 
+  });
 
   const isUniform = group.every(item => item.start === group[0].start && item.end === group[0].end);
-  document.getElementById('SeparateTimeToggle').checked = !isUniform; toggleSeparateTimes(); 
-  if (isUniform) { document.getElementById('StartTime').value = group[0].start; document.getElementById('EndTime').value = group[0].end; } 
-  else { group.forEach(item => { const sInput = document.getElementById(`start_day_${item.day}`); const eInput = document.getElementById(`end_day_${item.day}`); if (sInput) sInput.value = item.start; if (eInput) eInput.value = item.end; }); }
-  selectedColor = {bg: s.bg, fg: s.fg}; renderSwatches(); 
-  editIndex = -1; editGroupName = name; 
+  document.getElementById('SeparateTimeToggle').checked = !isUniform; 
+  toggleSeparateTimes(); 
+  
+  if (isUniform) { 
+      document.getElementById('StartTime').value = group[0].start; 
+      document.getElementById('EndTime').value = group[0].end; 
+  } else { 
+      group.forEach(item => { 
+          const sInput = document.getElementById('start_day_' + item.day); 
+          const eInput = document.getElementById('end_day_' + item.day); 
+          if (sInput) sInput.value = item.start; 
+          if (eInput) eInput.value = item.end; 
+      }); 
+  }
+  
+  selectedColor = {bg: s.bg, fg: s.fg}; 
+  renderSwatches(); 
+  editIndex = -1; 
+  editGroupName = name; 
+  
   document.getElementById('formTitle').textContent = 'แก้ไขวิชา (อัปเดตทุกวัน)';
-  const addBtn = document.getElementById('addBtn'); addBtn.innerHTML = 'บันทึกแก้ไข (ทุกวัน)'; addBtn.style.background = 'var(--warning)'; 
+  const addBtn = document.getElementById('addBtn'); 
+  addBtn.innerHTML = 'บันทึกแก้ไข (ทุกวัน)'; 
+  addBtn.style.background = 'var(--warning)'; 
   openFormModal();
 }
 
-function deleteGroup(name) { if(confirm(`ต้องการลบวิชา "${name}" ออกจากทุกวันเลยใช่ไหม?`)) { subjects = subjects.filter(s => s.name !== name); renderAll(); syncToCloud(); showToast(`ลบวิชา ${name} เรียบร้อย`, 'success'); } }
+function deleteGroup(name) { 
+    if(confirm('ต้องการลบวิชา "' + name + '" ออกจากทุกวันเลยใช่ไหม?')) { 
+        subjects = subjects.filter(s => s.name !== name); 
+        renderAll(); 
+        syncToCloud(); 
+        showToast('ลบวิชา ' + name + ' เรียบร้อย', 'success'); 
+    } 
+}
+
 function checkCollision(day, sMin, eMin, excludeIdx = -1, excludeName = null) {
   for (let i = 0; i < subjects.length; i++) {
-    if (i === excludeIdx) continue; let s = subjects[i];
+    if (i === excludeIdx) continue; 
+    let s = subjects[i];
     if (excludeName && s.name === excludeName) continue; 
     if (s.day == day && sMin < (s.endPOS - 2) && eMin > (s.startPOS - 2)) return s.name;
-  } return null;
+  } 
+  return null;
 }
 
 function editSubject(idx) {
   const s = subjects[idx];
-  document.getElementById('SubName').value = s.name; document.getElementById('SubRoom').value = s.room;
-  document.getElementById('MidtermDate').value = s.midtermDate || ''; document.getElementById('FinalDate').value = s.finalDate || '';
+  document.getElementById('SubName').value = s.name; 
+  document.getElementById('SubRoom').value = s.room;
+  document.getElementById('MidtermDate').value = s.midtermDate || ''; 
+  document.getElementById('FinalDate').value = s.finalDate || '';
+  
   document.querySelectorAll('input[name="SubDays"]').forEach(cb => cb.checked = false);
-  const cb = document.querySelector(`input[name="SubDays"][value="${s.day}"]`); if(cb) cb.checked = true;
-  document.getElementById('SeparateTimeToggle').checked = false; toggleSeparateTimes();
-  document.getElementById('StartTime').value = s.start; document.getElementById('EndTime').value = s.end;
-  selectedColor = {bg: s.bg, fg: s.fg}; renderSwatches(); 
-  editIndex = idx; editGroupName = null; 
+  const cb = document.querySelector('input[name="SubDays"][value="' + s.day + '"]'); 
+  if(cb) cb.checked = true;
+  
+  document.getElementById('SeparateTimeToggle').checked = false; 
+  toggleSeparateTimes();
+  document.getElementById('StartTime').value = s.start; 
+  document.getElementById('EndTime').value = s.end;
+  selectedColor = {bg: s.bg, fg: s.fg}; 
+  renderSwatches(); 
+  
+  editIndex = idx; 
+  editGroupName = null; 
   document.getElementById('formTitle').textContent = 'แก้ไขวิชา (เฉพาะคาบนี้)';
-  const addBtn = document.getElementById('addBtn'); addBtn.innerHTML = 'บันทึกแก้ไข'; addBtn.style.background = 'var(--warning)'; 
+  const addBtn = document.getElementById('addBtn'); 
+  addBtn.innerHTML = 'บันทึกแก้ไข'; 
+  addBtn.style.background = 'var(--warning)'; 
   openFormModal();
 }
 
 function resetEditMode() {
-  editIndex = -1; editGroupName = null;
-  document.getElementById('SubName').value = ''; document.getElementById('SubRoom').value = ''; 
-  document.getElementById('MidtermDate').value = ''; document.getElementById('FinalDate').value = '';
+  editIndex = -1; 
+  editGroupName = null;
+  document.getElementById('SubName').value = ''; 
+  document.getElementById('SubRoom').value = ''; 
+  document.getElementById('MidtermDate').value = ''; 
+  document.getElementById('FinalDate').value = '';
   document.querySelectorAll('input[name="SubDays"]').forEach(cb => cb.checked = false);
-  document.getElementById('SeparateTimeToggle').checked = false; toggleSeparateTimes();
-  selectedColor = null; renderSwatches();
+  document.getElementById('SeparateTimeToggle').checked = false; 
+  toggleSeparateTimes();
+  selectedColor = null; 
+  renderSwatches();
 }
 
 function addSubject(){
-  const name=document.getElementById('SubName').value.trim(); const room=document.getElementById('SubRoom').value.trim();
-  const midtermDate=document.getElementById('MidtermDate').value; const finalDate=document.getElementById('FinalDate').value;
+  const name = document.getElementById('SubName').value.trim(); 
+  const room = document.getElementById('SubRoom').value.trim();
+  const midtermDate = document.getElementById('MidtermDate').value; 
+  const finalDate = document.getElementById('FinalDate').value;
   const dayCheckboxes = Array.from(document.querySelectorAll('input[name="SubDays"]:checked'));
   const isSeparate = document.getElementById('SeparateTimeToggle').checked;
 
-  if(!name||!room) return showToast('กรุณากรอกชื่อและห้องเรียนให้ครบถ้วน', 'warning');
-  if(dayCheckboxes.length === 0) return showToast('กรุณาเลือกวันเรียนอย่างน้อย 1 วัน', 'warning');
-  const{bg,fg} = selectedColor || (isDark?DARK_PALETTES:PALETTES)[Math.floor(Math.random()*8)];
+  if(!name || !room) {
+      showToast('กรุณากรอกชื่อและห้องเรียนให้ครบถ้วน', 'warning');
+      return;
+  }
+  
+  if(dayCheckboxes.length === 0) {
+      showToast('กรุณาเลือกวันเรียนอย่างน้อย 1 วัน', 'warning');
+      return;
+  }
+  
+  const chosenColor = selectedColor || (isDark ? DARK_PALETTES : PALETTES)[Math.floor(Math.random() * 8)];
+  const bg = chosenColor.bg;
+  const fg = chosenColor.fg;
+  
   let newMeetings = [];
 
-  for (let cb of dayCheckboxes) {
-      let d = cb.value; let start, end;
-      if (isSeparate) { start = document.getElementById(`start_day_${d}`).value; end = document.getElementById(`end_day_${d}`).value; } 
-      else { start = document.getElementById('StartTime').value; end = document.getElementById('EndTime').value; }
-      let sMin=(Number(start.split(':')[0])-8)*60+Number(start.split(':')[1]); let eMin=(Number(end.split(':')[0])-8)*60+Number(end.split(':')[1]);
-      if(sMin<0||eMin>900||eMin<=sMin) return showToast(`เวลาในวัน${DAY_NAMES[d]}ไม่ถูกต้อง`, 'warning');
+  for (let i = 0; i < dayCheckboxes.length; i++) {
+      let d = dayCheckboxes[i].value; 
+      let start, end;
+      
+      if (isSeparate) { 
+          start = document.getElementById('start_day_' + d).value; 
+          end = document.getElementById('end_day_' + d).value; 
+      } else { 
+          start = document.getElementById('StartTime').value; 
+          end = document.getElementById('EndTime').value; 
+      }
+      
+      let sMin = (Number(start.split(':')[0]) - 8) * 60 + Number(start.split(':')[1]); 
+      let eMin = (Number(end.split(':')[0]) - 8) * 60 + Number(end.split(':')[1]);
+      
+      if(sMin < 0 || eMin > 900 || eMin <= sMin) {
+          showToast('เวลาในวัน' + DAY_NAMES[d] + 'ไม่ถูกต้อง', 'warning');
+          return;
+      }
+      
       let collision = checkCollision(d, sMin, eMin, editIndex, editGroupName);
-      if (collision) { if(navigator.vibrate) navigator.vibrate(200); return showToast(`เวลาชนกับวิชา "${collision}" (วัน${DAY_NAMES[d]})!`, 'error'); }
-      newMeetings.push({ name,room,day:d,start,end,startPOS:sMin+2,endPOS:eMin+2,bg,fg,midtermDate,finalDate });
+      if (collision) { 
+          if(navigator.vibrate) navigator.vibrate(200); 
+          showToast('เวลาชนกับวิชา "' + collision + '" (วัน' + DAY_NAMES[d] + ')!', 'error');
+          return; 
+      }
+      
+      newMeetings.push({ 
+          name: name, room: room, day: d, start: start, end: end, 
+          startPOS: sMin + 2, endPOS: eMin + 2, bg: bg, fg: fg, 
+          midtermDate: midtermDate, finalDate: finalDate 
+      });
   }
 
-  if (editGroupName) { subjects = subjects.filter(s => s.name !== editGroupName); subjects.push(...newMeetings); showToast('อัปเดตวิชาครบทุกวันเรียบร้อย', 'success'); } 
-  else if (editIndex !== -1) { subjects.splice(editIndex, 1); subjects.push(...newMeetings); showToast('แก้ไขวิชาสำเร็จ', 'success'); } 
-  else { subjects.push(...newMeetings); showToast('เพิ่มวิชาใหม่สำเร็จ', 'success'); }
+  if (editGroupName) { 
+      subjects = subjects.filter(s => s.name !== editGroupName); 
+      subjects.push(...newMeetings); 
+      showToast('อัปเดตวิชาครบทุกวันเรียบร้อย', 'success'); 
+  } else if (editIndex !== -1) { 
+      subjects.splice(editIndex, 1); 
+      subjects.push(...newMeetings); 
+      showToast('แก้ไขวิชาสำเร็จ', 'success'); 
+  } else { 
+      subjects.push(...newMeetings); 
+      showToast('เพิ่มวิชาใหม่สำเร็จ', 'success'); 
+  }
+  
   if(navigator.vibrate) navigator.vibrate(50); 
-  closeFormModal(); renderAll(); syncToCloud();
+  closeFormModal(); 
+  renderAll(); 
+  syncToCloud();
 }
 
-function del(idx){ subjects.splice(idx,1); renderAll(); syncToCloud(); showToast('ลบคาบเรียนนี้เรียบร้อย', 'success'); }
-function clearAll(){ if(confirm('ล้างตารางทั้งหมด? ข้อมูลบนคลาวด์จะหายไปด้วยนะ')){ subjects=[]; renderAll(); syncToCloud(); showToast('ล้างตารางเรียนแล้ว', 'success'); } }
+function del(idx) { 
+    subjects.splice(idx,1); 
+    renderAll(); 
+    syncToCloud(); 
+    showToast('ลบคาบเรียนนี้เรียบร้อย', 'success'); 
+}
+
+function clearAll() { 
+    if(confirm('ล้างตารางทั้งหมด? ข้อมูลบนคลาวด์จะหายไปด้วยนะ')){ 
+        subjects = []; 
+        renderAll(); 
+        syncToCloud(); 
+        showToast('ล้างตารางเรียนแล้ว', 'success'); 
+    } 
+}
 
 // ==========================================
 // 📦 ระบบจัดการงาน (Tasks ABC Model)
@@ -998,7 +1313,8 @@ function openTaskModal() {
   const uniqueSubjects = [...new Set(subjects.map(s => s.name.trim()))];
   uniqueSubjects.forEach(sub => {
     let opt = document.createElement('option');
-    opt.value = sub; opt.textContent = sub;
+    opt.value = sub; 
+    opt.textContent = sub;
     subjectSelect.appendChild(opt);
   });
   
@@ -1022,9 +1338,12 @@ function saveTask() {
   const classType = document.getElementById('TaskClass').value;
   const deadline = document.getElementById('TaskDeadline').value;
   
-  if(!name) return showToast('กรุณากรอกชื่องานด้วยครับ', 'warning');
+  if(!name) {
+      showToast('กรุณากรอกชื่องานด้วยครับ', 'warning');
+      return;
+  }
   
-  const taskObj = { id: Date.now(), name, subject, classType, deadline };
+  const taskObj = { id: Date.now(), name: name, subject: subject, classType: classType, deadline: deadline };
   
   if(editTaskIndex !== -1) {
     tasks[editTaskIndex] = taskObj;
@@ -1035,7 +1354,9 @@ function saveTask() {
   }
   
   if(navigator.vibrate) navigator.vibrate(50);
-  closeTaskModal(); renderTasks(); syncToCloud();
+  closeTaskModal(); 
+  renderTasks(); 
+  syncToCloud();
 }
 
 function editTask(index) {
@@ -1054,7 +1375,8 @@ function editTask(index) {
 function deleteTask(index) {
   if(confirm('เคลียร์งานนี้ทิ้งใช่ไหม?')) {
     tasks.splice(index, 1);
-    renderTasks(); syncToCloud();
+    renderTasks(); 
+    syncToCloud();
     showToast('เคลียร์งานเรียบร้อย ยินดีด้วย!', 'success');
   }
 }
@@ -1067,12 +1389,13 @@ function renderTasks() {
   let sortedTasks = [...tasks];
   
   if(sortType === 'FEFO') {
-    sortedTasks.sort((a,b) => {
-      if(!a.deadline) return 1; if(!b.deadline) return -1;
+    sortedTasks.sort((a, b) => {
+      if(!a.deadline) return 1; 
+      if(!b.deadline) return -1;
       return new Date(a.deadline) - new Date(b.deadline);
     });
   } else {
-    sortedTasks.sort((a,b) => a.classType.localeCompare(b.classType));
+    sortedTasks.sort((a, b) => a.classType.localeCompare(b.classType));
   }
 
   let html = '';
@@ -1082,16 +1405,27 @@ function renderTasks() {
     else if(t.classType === 'B') countB++;
     else countC++;
     
-    let diffDays = '?'; let dlText = ''; let urgentClass = '';
+    let diffDays = '?'; 
+    let dlText = ''; 
+    let urgentClass = '';
+    
     if(t.deadline) {
       const dlDate = new Date(t.deadline); dlDate.setHours(0,0,0,0);
       const today = new Date(); today.setHours(0,0,0,0);
       diffDays = Math.ceil((dlDate - today) / (1000 * 60 * 60 * 24));
       
-      if(diffDays < 0) { dlText = "🚨 เลยกำหนดส่ง!"; urgentClass = "urgent-text"; }
-      else if(diffDays === 0) { dlText = "🚨 ส่งวันนี้!"; urgentClass = "urgent-text"; }
-      else if(diffDays <= 3) { dlText = `🚨 ROP Alert: อีก ${diffDays} วัน!`; urgentClass = "urgent-text"; }
-      else { dlText = `⏳ Lead Time: อีก ${diffDays} วัน`; }
+      if(diffDays < 0) { 
+          dlText = "🚨 เลยกำหนดส่ง!"; 
+          urgentClass = "urgent-text"; 
+      } else if(diffDays === 0) { 
+          dlText = "🚨 ส่งวันนี้!"; 
+          urgentClass = "urgent-text"; 
+      } else if(diffDays <= 3) { 
+          dlText = "🚨 ROP Alert: อีก " + diffDays + " วัน!"; 
+          urgentClass = "urgent-text"; 
+      } else { 
+          dlText = "⏳ Lead Time: อีก " + diffDays + " วัน"; 
+      }
     } else {
       dlText = "✅ ไม่มีกำหนดส่ง";
     }
@@ -1100,29 +1434,30 @@ function renderTasks() {
     let badgeClass = t.classType === 'A' ? 'badge-a' : (t.classType === 'B' ? 'badge-b' : 'badge-c');
     let originalIndex = tasks.findIndex(orig => orig.id === t.id);
 
-    html += `
-    <div class="task-card">
-      <div class="task-card-header">
-        <div class="task-title">${t.name}</div>
-        <div style="display:flex; gap:8px; align-items:center;">
-          <div class="task-badge ${badgeClass}">Class ${t.classType}</div>
-          <button class="icon-btn" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; background:var(--bg);" onclick="editTask(${originalIndex})">✏️</button>
-          <button class="icon-btn" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; background:#ffe5e5; border-color:var(--danger); color:var(--danger);" onclick="deleteTask(${originalIndex})">🗑️</button>
-        </div>
-      </div>
-      ${t.subject ? `<div class="task-subject">${t.subject}</div>` : ''}
-      <div class="task-footer">
-        <div class="task-deadline ${urgentClass}">${dlText}</div>
-        <div>ส่ง: ${dateStr}</div>
-      </div>
-    </div>`;
+    let subjectTag = t.subject ? '<div class="task-subject">' + t.subject + '</div>' : '';
+
+    html += '<div class="task-card">' +
+      '<div class="task-card-header">' +
+        '<div class="task-title">' + t.name + '</div>' +
+        '<div style="display:flex; gap:8px; align-items:center;">' +
+          '<div class="task-badge ' + badgeClass + '">Class ' + t.classType + '</div>' +
+          '<button class="icon-btn" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; background:var(--bg);" onclick="editTask(' + originalIndex + ')">✏️</button>' +
+          '<button class="icon-btn" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; background:#ffe5e5; border-color:var(--danger); color:var(--danger);" onclick="deleteTask(' + originalIndex + ')">🗑️</button>' +
+        '</div>' +
+      '</div>' +
+      subjectTag +
+      '<div class="task-footer">' +
+        '<div class="task-deadline ' + urgentClass + '">' + dlText + '</div>' +
+        '<div>ส่ง: ' + dateStr + '</div>' +
+      '</div>' +
+    '</div>';
   });
 
   if(sortedTasks.length === 0) {
-    html = `<div style="text-align:center; padding:30px; color:var(--text2); display:flex; flex-direction:column; gap:10px; align-items:center;">
-              <div style="font-size:40px;">🎉</div>
-              <div>ไม่มีงานค้าง! พักผ่อนได้เลยครับ</div>
-            </div>`;
+    html = '<div style="text-align:center; padding:30px; color:var(--text2); display:flex; flex-direction:column; gap:10px; align-items:center;">' +
+              '<div style="font-size:40px;">🎉</div>' +
+              '<div>ไม่มีงานค้าง! พักผ่อนได้เลยครับ</div>' +
+            '</div>';
   }
 
   container.innerHTML = html;
@@ -1132,46 +1467,109 @@ function renderTasks() {
 }
 
 function downloadImage(){ 
-  document.body.classList.add('exporting'); showToast('กำลังประมวลผลรูปภาพ...', 'info');
-  const tempFocusState = isFocusMode; if (tempFocusState) toggleFocusMode();
+  document.body.classList.add('exporting'); 
+  showToast('กำลังประมวลผลรูปภาพ...', 'info');
+  const tempFocusState = isFocusMode; 
+  if (tempFocusState) toggleFocusMode();
+  
   setTimeout(() => {
     const area = document.getElementById('capture-area');
-    const originalWidth = area.style.width; area.style.width = area.scrollWidth + 'px';
+    const originalWidth = area.style.width; 
+    area.style.width = area.scrollWidth + 'px';
+    
     html2canvas(area, { scale: 2, backgroundColor: isDark ? '#1c1c1e' : '#ffffff', windowWidth: area.scrollWidth }).then(c => {
-      const a = document.createElement('a'); a.download = 'PSU_Schedule.png'; a.href = c.toDataURL('image/png'); a.click();
-      area.style.width = originalWidth; document.body.classList.remove('exporting'); showToast('บันทึกรูปตารางเรียนสำเร็จ! 📸', 'success');
+      const a = document.createElement('a'); 
+      a.download = 'PSU_Schedule.png'; 
+      a.href = c.toDataURL('image/png'); 
+      a.click();
+      area.style.width = originalWidth; 
+      document.body.classList.remove('exporting'); 
+      showToast('บันทึกรูปตารางเรียนสำเร็จ! 📸', 'success');
       if (tempFocusState) toggleFocusMode();
     });
   }, 400); 
 }
 
-function toggleTheme(){ isDark=!isDark; document.body.classList.toggle('dark',isDark); renderSwatches(); }
-function pickCustom(hex){ selectedColor={bg:hex,fg:'#000'}; renderSwatches(); }
-function renderSwatches(){ const pal=isDark?DARK_PALETTES:PALETTES; const w=document.getElementById('swatches'); w.innerHTML=''; pal.forEach((p,i)=>{ const s=document.createElement('div');s.className='swatch';s.style.background=p.bg;s.onclick=()=>{selectedColor=p;renderSwatches();};w.appendChild(s);}); }
+function toggleTheme() { 
+    isDark = !isDark; 
+    document.body.classList.toggle('dark', isDark); 
+    renderSwatches(); 
+}
 
-let ptrStart = 0; let ptrCurrent = 0; const ptrIndicator = document.getElementById('ptr-indicator');
-document.addEventListener('touchstart', e => { if(window.scrollY === 0) ptrStart = e.touches[0].clientY; }, {passive:true});
-document.addEventListener('touchmove', e => {
-  if(window.scrollY === 0 && ptrStart > 0) { ptrCurrent = e.touches[0].clientY; let diff = ptrCurrent - ptrStart; if(diff > 0) ptrIndicator.style.transform = `translateY(${Math.min(diff, 80)}px)`; }
+function pickCustom(hex) { 
+    selectedColor = { bg: hex, fg: '#000' }; 
+    renderSwatches(); 
+}
+
+function renderSwatches() { 
+    const pal = isDark ? DARK_PALETTES : PALETTES; 
+    const w = document.getElementById('swatches'); 
+    w.innerHTML = ''; 
+    pal.forEach((p, i) => { 
+        const s = document.createElement('div');
+        s.className = 'swatch';
+        s.style.background = p.bg;
+        s.onclick = () => {
+            selectedColor = p;
+            renderSwatches();
+        };
+        w.appendChild(s);
+    }); 
+}
+
+let ptrStart = 0; 
+let ptrCurrent = 0; 
+const ptrIndicator = document.getElementById('ptr-indicator');
+
+document.addEventListener('touchstart', e => { 
+    if(window.scrollY === 0) {
+        ptrStart = e.touches[0].clientY; 
+    }
 }, {passive:true});
+
+document.addEventListener('touchmove', e => {
+  if(window.scrollY === 0 && ptrStart > 0) { 
+      ptrCurrent = e.touches[0].clientY; 
+      let diff = ptrCurrent - ptrStart; 
+      if(diff > 0) {
+          ptrIndicator.style.transform = "translateY(" + Math.min(diff, 80) + "px)"; 
+      }
+  }
+}, {passive:true});
+
 document.addEventListener('touchend', e => {
   if(ptrStart > 0 && ptrCurrent - ptrStart > 60 && window.scrollY === 0) {
-    if(navigator.vibrate) navigator.vibrate(50); ptrIndicator.innerHTML = '⏳ กำลังซิงค์ข้อมูล...';
-    // ตอนดึงลงเพื่อ Refresh ให้ซิงค์ใหม่
-    loadAccountData().then(()=>{ ptrIndicator.style.transform = `translateY(0)`; setTimeout(() => ptrIndicator.innerHTML = '⬇️ ดึงลงเพื่ออัปเดตตาราง', 300); });
-  } else { ptrIndicator.style.transform = `translateY(0)`; }
-  ptrStart = 0; ptrCurrent = 0;
+    if(navigator.vibrate) navigator.vibrate(50); 
+    ptrIndicator.innerHTML = '⏳ กำลังซิงค์ข้อมูล...';
+    loadAccountData().then(() => { 
+        ptrIndicator.style.transform = "translateY(0)"; 
+        setTimeout(() => {
+            ptrIndicator.innerHTML = '⬇️ ดึงลงเพื่ออัปเดตตาราง';
+        }, 300); 
+    });
+  } else { 
+      ptrIndicator.style.transform = "translateY(0)"; 
+  }
+  ptrStart = 0; 
+  ptrCurrent = 0;
 });
 
 const gridSchedule = document.getElementById('Schedule');
-for(let i=0;i<16;i++){ const d=document.createElement('div'); d.className='time-lbl'; d.style.gridRow=1; d.style.gridColumn=(i*60)+2; d.textContent=String(i+8).padStart(2,'0')+':00'; gridSchedule.appendChild(d); }
+for(let i = 0; i < 16; i++) { 
+    const d = document.createElement('div'); 
+    d.className = 'time-lbl'; 
+    d.style.gridRow = 1; 
+    d.style.gridColumn = (i * 60) + 2; 
+    d.textContent = String(i + 8).padStart(2, '0') + ':00'; 
+    gridSchedule.appendChild(d); 
+}
 
-// 🌟 1. สั่งให้เว็บดึงข้อมูลมาแสดงทันที (ไม่ต้องรอ LINE)
+// 🌟 1. ดึงตารางมาเลยทันที ไม่ต้องง้อ LINE
 renderSwatches(); 
 renderAccountDropdown(); 
 loadAccountData(); 
 
-// 🌟 2. ส่วนระบบ LINE ปล่อยให้มันแอบเชื่อมต่ออยู่หลังบ้านเงียบๆ
+// 🌟 2. ให้ LINE โหลดอยู่เงียบๆ แบคกราวน์
 initLIFF();
 
 document.getElementById('focusBtn').style.opacity = isFocusMode ? '1' : '0.5';
