@@ -480,6 +480,15 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
 <div id="toast-container"></div>
 
 <script>
+// ดักจับ Error เผื่อเว็บพัง จะได้รู้ว่าเกิดจากอะไร
+window.onerror = function(msg) {
+    const hint = document.getElementById('hintText');
+    if (hint) {
+        hint.style.color = 'red';
+        hint.textContent = "พบบั๊ก: " + msg + " (ลองกดรีเฟรชหน้าจอ 1 รอบ)";
+    }
+};
+
 // ==========================================
 // 🔗 ระบบเชื่อมต่อฐานข้อมูล Google Apps Script
 // ==========================================
@@ -495,7 +504,18 @@ const DARK_PALETTES = [{bg:'#2d1f5e',fg:'#e9d5ff'},{bg:'#082f49',fg:'#bae6fd'},{
 const DAY_NAMES = {2:'จันทร์', 3:'อังคาร', 4:'พุธ', 5:'พฤหัสบดี', 6:'ศุกร์'};
 
 let isDark = false; let selectedColor = null; 
-let accounts = JSON.parse(localStorage.getItem('psu_account_list')) || [{ id: '6710510269', name: 'นักศึกษา001', pin: '0000' }];
+
+// 🌟 ระบบดึงข้อมูลบัญชี (เพิ่ม Try-Catch ป้องกันแอปพังถ้าแคชขยะติดมา)
+let accounts = [{ id: '6710510269', name: 'บัญชีเริ่มต้น', pin: '0000' }];
+try {
+    let savedAcc = localStorage.getItem('psu_account_list');
+    if (savedAcc) {
+        let parsed = JSON.parse(savedAcc);
+        if (parsed && parsed.length > 0) accounts = parsed;
+    }
+} catch(e) {
+    localStorage.removeItem('psu_account_list'); // ถ้าพังให้ล้างทิ้ง
+}
 let currentAccount = localStorage.getItem('psu_current_account') || accounts[0].id;
 
 let subjects = [];
@@ -694,13 +714,17 @@ async function loadAccountData() {
       } else { setLoadingState(false); document.getElementById('hintText').textContent = '🔒 เข้าถึงไม่ได้ (รหัสผ่านผิด)'; subjects = []; tasks = []; }
     } else { 
       subjects = result.data || []; 
-      tasks = result.tasksData || JSON.parse(localStorage.getItem('psu_tasks_' + currentAccount)) || []; 
+      tasks = result.tasksData || [];
       showToast(`โหลดตารางของ "${accounts[accIndex].name}" เรียบร้อย`, 'success'); 
     }
   } catch (error) { 
-    setLoadingState(false); document.getElementById('hintText').textContent = '❌ โหลดข้อมูลไม่สำเร็จ'; 
+    setLoadingState(false); 
+    document.getElementById('hintText').textContent = '❌ โหลดข้อมูลไม่สำเร็จ (ออฟไลน์)'; 
     showToast('เชื่อมต่อเซิร์ฟเวอร์ไม่ได้', 'error'); 
-    tasks = JSON.parse(localStorage.getItem('psu_tasks_' + currentAccount)) || []; 
+    try {
+        let savedTasks = localStorage.getItem('psu_tasks_' + currentAccount);
+        tasks = savedTasks ? JSON.parse(savedTasks) : []; 
+    } catch(e) { tasks = []; }
   }
   
   resetEditMode(); renderAll(); renderTasks();
@@ -768,9 +792,9 @@ function renderAll(){
   const grid = document.getElementById('Schedule');
   document.querySelectorAll('.card').forEach(c=>c.remove());
   const hintDiv = document.getElementById('hint'); const hintText = document.getElementById('hintText');
-  if (subjects.length === 0 && !hintText.textContent.includes('🔒')) {
+  if (subjects.length === 0 && !hintText.textContent.includes('🔒') && !hintText.textContent.includes('❌')) {
     setLoadingState(false); hintDiv.style.display = 'flex'; hintText.textContent = 'กดปุ่ม + มุมขวาล่างเพื่อเพิ่มวิชาเลยครับ';
-  } else { hintDiv.style.display = 'none'; }
+  } else if (subjects.length > 0) { hintDiv.style.display = 'none'; }
   
   let placedCards = []; 
 
@@ -1142,12 +1166,13 @@ document.addEventListener('touchend', e => {
 const gridSchedule = document.getElementById('Schedule');
 for(let i=0;i<16;i++){ const d=document.createElement('div'); d.className='time-lbl'; d.style.gridRow=1; d.style.gridColumn=(i*60)+2; d.textContent=String(i+8).padStart(2,'0')+':00'; gridSchedule.appendChild(d); }
 
-// 🌟 เรียกใช้ฟังก์ชัน LIFF ทันทีที่เปิดหน้าเว็บ
-initLIFF().then(() => {
-    renderSwatches(); 
-    renderAccountDropdown(); 
-    loadAccountData(); // ดึงข้อมูลและอัปเดต LINE ID
-});
+// 🌟 1. สั่งให้เว็บดึงข้อมูลมาแสดงทันที (ไม่ต้องรอ LINE)
+renderSwatches(); 
+renderAccountDropdown(); 
+loadAccountData(); 
+
+// 🌟 2. ส่วนระบบ LINE ปล่อยให้มันแอบเชื่อมต่ออยู่หลังบ้านเงียบๆ
+initLIFF();
 
 document.getElementById('focusBtn').style.opacity = isFocusMode ? '1' : '0.5';
 document.getElementById('focusBtn').style.background = isFocusMode ? 'rgba(0,102,204,0.1)' : 'var(--panel)';
