@@ -282,6 +282,9 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
   <div><h1 id="pageTitle">ตารางเรียน 🔒</h1><p class="subtitle" id="pageSubtitle">Super App Edition</p></div>
   <div class="account-controls" style="display:flex; gap:8px; align-items: center;" id="TopControls">
     <select id="AccountSelector" class="theme-toggle" onchange="switchAccount()"></select>
+    <button class="theme-toggle" onclick="window.open('https://lin.ee/yH4DYqN', '_blank')" title="เปิดแชทสมศรี" style="color: #00C300; border-color: #00C300; background: 	rgba(0, 195, 0, 0.05);">
+      💬 คุยกับสมศรี
+    </button>
     <button class="icon-btn" onclick="openAccountModal()" title="เพิ่มบัญชีใหม่">➕</button>
     <button class="icon-btn" onclick="deleteAccount()" title="ลบบัญชีนี้" style="color: var(--danger);">🗑️</button>
     <button class="icon-btn" onclick="downloadImage()" title="บันทึกตารางเป็นรูปภาพ">📸</button>
@@ -321,8 +324,8 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
 
 <div id="View_Tasks" class="view-section">
   <div class="task-summary-grid">
-    <div class="task-stat-box a"><div class="stat-num" id="countA">0</div><div class="stat-lbl">Class A<br>(ความเสี่ยงสูง)</div></div>
-    <div class="task-stat-box b"><div class="stat-num" id="countB">0</div><div class="stat-lbl">Class B<br>(ความเสี่ยงกลาง)</div></div>
+    <div class="task-stat-box a"><div class="stat-num" id="countA">0</div><div class="stat-lbl">Class A<br>(งานใหญ)</div></div>
+    <div class="task-stat-box b"><div class="stat-num" id="countB">0</div><div class="stat-lbl">Class B<br>(ทั่วไป)</div></div>
     <div class="task-stat-box c"><div class="stat-num" id="countC">0</div><div class="stat-lbl">Class C<br>(งานจุกจิก)</div></div>
   </div>
 
