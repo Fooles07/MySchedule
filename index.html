@@ -9,7 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
-window.onerror = function(msg, url, line) {
+window.onerror = function(msg, url, line, col, error) {
     const hint = document.getElementById('hintText');
     const spinner = document.getElementById('loaderSpinner');
     if (hint) { 
@@ -181,16 +181,29 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
 .task-list-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap:12px; flex-wrap:wrap}
 .task-list-header h3 { font-size: 18px; color: var(--text); font-family: 'Outfit', sans-serif;}
 .filter-select { background: var(--input-bg); border: 1px solid var(--border); padding: 6px 12px; border-radius: 8px; font-family: 'Sarabun'; font-size: 13px; font-weight: 700; color: var(--text); outline: none;}
-.task-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; transition: transform 0.2s, border-color 0.2s;}
+
+/* Task Cards Upgrade */
+.task-card { background: var(--panel); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 8px; transition: all 0.2s;}
 .task-card:hover { border-color: var(--accent); transform: translateX(4px); box-shadow: 0 4px 12px rgba(0,0,0,0.05);}
 .task-card-header { display: flex; justify-content: space-between; align-items: flex-start; gap:8px}
-.task-badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; color: #fff;}
+.task-badge { padding: 4px 8px; border-radius: 6px; font-size: 11px; font-weight: 900; color: #fff; display: inline-flex; align-items: center; justify-content: center;}
 .badge-a { background: var(--danger); } .badge-b { background: var(--warning); } .badge-c { background: var(--success); }
-.task-title { font-size: 16px; font-weight: 800; color: var(--text); }
+.badge-todo { background: #E5E7EB; color: #374151; }
+.badge-doing { background: #DBEAFE; color: #0369A1; }
+.badge-done { background: #D1FAE5; color: #15803D; }
+.badge-type { background: #F3E8FF; color: #6B21A8; border: 1px solid #E9D5FF; }
+
+.task-title { font-size: 16px; font-weight: 800; color: var(--text); line-height: 1.3; }
 .task-subject { font-size: 13px; color: var(--accent); font-weight: 800;}
+.task-note { font-size: 13px; color: var(--text2); background: var(--input-bg); padding: 8px 10px; border-radius: 8px; font-weight: 500; margin-top: 4px; }
 .task-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 8px; font-size: 12px; color: var(--text2); font-weight: 700;}
 .task-deadline { display: flex; align-items: center; gap: 4px; }
 .urgent-text { color: var(--danger); font-weight: 900; }
+
+/* Done State */
+.task-card.task-done { opacity: 0.6; border-color: transparent; background: var(--input-bg); }
+.task-card.task-done .task-title { text-decoration: line-through; color: var(--text2); }
+.task-card.task-done:hover { transform: none; box-shadow: none; border-color: var(--border); }
 
 /* Responsive schedule (mobile) */
 @media (max-width: 600px) {
@@ -224,7 +237,9 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
 .form-row { display: flex; flex-direction: column; gap: 14px; }
 .field { display: flex; flex-direction: column; gap: 6px; width: 100%; }
 .field label { font-size: 12px; font-weight: 900; color: var(--text2); text-transform: uppercase; letter-spacing: 0.5px; }
-.field input, .field select { height: 48px; padding: 0 14px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 15px; background: var(--input-bg); color: var(--text); outline: none; }
+.field input, .field select, .field textarea { padding: 12px 14px; border: 1.5px solid var(--border); border-radius: 12px; font-size: 15px; background: var(--input-bg); color: var(--text); outline: none; font-family: 'Sarabun'; }
+.field input[type="time"], .field input[type="date"], .field select { height: 48px; }
+.field textarea { resize: vertical; min-height: 80px; }
 .flex-row { display: flex; gap: 12px; }
 .flex-row .field { flex: 1; }
 .btn-add{background:var(--accent);color:#fff; height:50px; border-radius:14px; font-size:16px; font-weight:900; border:none; cursor:pointer; width:100%; margin-top:20px; transition:0.15s;}
@@ -387,23 +402,54 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
         <label>ชื่องาน / โปรเจกต์</label>
         <input type="text" id="TaskName" placeholder="เช่น สรุปเนื้อหาบทที่ 1">
       </div>
+      <div class="flex-row">
+        <div class="field">
+          <label>ประเภทงาน</label>
+          <select id="TaskType">
+            <option value="ทั่วไป">📌 ทั่วไป</option>
+            <option value="งานเดี่ยว">👤 งานเดี่ยว</option>
+            <option value="งานกลุ่ม">👥 งานกลุ่ม</option>
+            <option value="โปรเจกต์">🚀 โปรเจกต์</option>
+            <option value="อ่านหนังสือสอบ">📝 อ่านหนังสือสอบ</option>
+          </select>
+        </div>
+        <div class="field">
+          <label>สถานะ (Kanban)</label>
+          <select id="TaskStatus">
+            <option value="TODO">📌 To Do (เพิ่งสั่ง)</option>
+            <option value="DOING">⏳ Doing (กำลังทำ)</option>
+            <option value="DONE">✅ Done (เสร็จแล้ว)</option>
+          </select>
+        </div>
+      </div>
       <div class="field">
         <label>วิชาที่เกี่ยวข้อง</label>
         <select id="TaskSubject">
           <option value="">-- ไม่ระบุวิชา --</option>
         </select>
       </div>
+      <div class="flex-row">
+        <div class="field">
+          <label>วันกำหนดส่ง</label>
+          <input type="date" id="TaskDeadline">
+        </div>
+        <div class="field">
+          <label>เวลา (ถ้ามี)</label>
+          <input type="time" id="TaskTime">
+        </div>
+      </div>
       <div class="field">
         <label>ระดับความสำคัญ (ABC Class)</label>
         <select id="TaskClass">
-          <option value="A">Class A (ความเสี่ยงสูง / สำคัญมาก)</option>
-          <option value="B" selected>Class B (ความเสี่ยงกลาง / ทั่วไป)</option>
+          <option value="AUTO" selected>🤖 Auto (ระบบคำนวณให้จากวันส่ง)</option>
+          <option value="A">Class A (ความเสี่ยงสูง / งานใหญ่)</option>
+          <option value="B">Class B (ความเสี่ยงกลาง / ทั่วไป)</option>
           <option value="C">Class C (งานจุกจิก / ใช้เวลาน้อย)</option>
         </select>
       </div>
       <div class="field">
-        <label>วันกำหนดส่ง (Deadline)</label>
-        <input type="date" id="TaskDeadline">
+        <label>รายละเอียดเพิ่มเติม / โน้ตเตือนใจ</label>
+        <textarea id="TaskNote" placeholder="เช่น ต้องทำสไลด์ 10 หน้า, ลิงก์ Google Docs..."></textarea>
       </div>
     </div>
     <button class="btn-add" id="addTaskBtn" onclick="saveTask()">บันทึกงาน</button>
@@ -430,7 +476,8 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
         ไม่ต้องเปิดเว็บ ก็เช็คงานผ่านแชทได้เลย!<br>
         🔸 พิมพ์ <b>"งานค้าง"</b> : เช็คคลังการบ้าน & ปิดจ๊อบ<br>
         🔸 พิมพ์ <b>"พรุ่งนี้เรียนไร"</b> : เช็คตารางวันพรุ่งนี้<br>
-        🔸 พิมพ์ <b>"+งาน"</b> : จดงานด่วนแบบถาม-ตอบ
+        🔸 พิมพ์ <b>"+งาน"</b> : จดงานด่วนแบบถาม-ตอบ<br><br>
+        <i>*หมายเหตุ: ในแชท LINE จะดึงงานทั้งหมดไปโชว์ แต่ถ้าอยากดูแบบแยกสถานะ To Do, Doing, Done แบบละเอียด ให้เปิดดูในเว็บนี้ครับ</i>
       </p>
     </div>
 
@@ -442,9 +489,9 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
     </div>
 
     <div class="help-sec">
-      <h3 style="color: var(--text);">📦 ระบบ ABC Tasking</h3>
+      <h3 style="color: var(--text);">📦 ระบบ ABC Tasking (อัปเกรด)</h3>
       <p style="margin-top: 6px; font-size: 14px; color: var(--text2); line-height: 1.6;">
-        สามารถกดที่ปุ่ม 'จัดการงาน' ด้านล่าง เพื่อเพิ่มการบ้าน ระบบจะวิเคราะห์และแจ้งเตือนความเสี่ยง (ROP Alert) ให้อัตโนมัติถ่างานใกล้ถึงกำหนดส่ง
+        ตอนเพิ่มงานสามารถเลือก <b>"Auto"</b> ให้ระบบคำนวณความเสี่ยงจากวันส่งให้อัตโนมัติได้เลย (A=ด่วนมาก, B=ด่วนปานกลาง, C=ยังไม่รีบ) และเมื่องานเสร็จแล้วให้กดปุ่ม ✅ ในเว็บ งานจะกลายเป็นสีเทาและย้ายไปอยู่ล่างสุดให้ภูมิใจเล่นๆ ครับ
       </p>
     </div>
 
@@ -452,20 +499,6 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
       <h3 style="color: var(--text);">👆 การจัดการรายคาบ (มือถือ)</h3>
       <p style="margin-top: 6px; font-size: 14px; color: var(--text2); line-height: 1.6;">
         ใช้นิ้วปัดการ์ดวิชาไปทางซ้าย (Swipe) เพื่อเปิดปุ่ม ✏️ (แก้ไข) และ 🗑️ (ลบ)
-      </p>
-    </div>
-
-    <div class="help-sec">
-      <h3 style="color: var(--text);">✏️ การจัดการแบบกลุ่ม</h3>
-      <p style="margin-top: 6px; font-size: 14px; color: var(--text2); line-height: 1.6;">
-        เลื่อนลงมาที่ "รายละเอียดวิชา" ด้านล่าง กดปุ่ม ✏️ หรือ 🗑️ จากตรงนี้ ระบบจะทำการแก้ไขหรือลบวิชานั้นในทุกๆ วันที่มีเรียนให้พร้อมกันทันที
-      </p>
-    </div>
-
-    <div class="help-sec" style="border-bottom: none; margin-bottom: 0;">
-      <h3 style="color: var(--text);">🎯 โหมดโฟกัส & เส้นเวลา</h3>
-      <p style="margin-top: 6px; font-size: 14px; color: var(--text2); line-height: 1.6;">
-        กดปุ่ม "🎯 โฟกัส" เพื่อหรี่สีวิชาวันอื่นๆ ลงให้เหลือแค่วันนี้ และจะปรากฏเส้นสีน้ำเงินเพื่อบอกเวลาปัจจุบัน
       </p>
     </div>
 
@@ -488,6 +521,8 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
 
 <div id="toast-container"></div>
 
+
+
 <script>
 // ==========================================
 // 🔗 ระบบเชื่อมต่อฐานข้อมูล Google Apps Script
@@ -502,7 +537,6 @@ const DAY_NAMES = {2:'จันทร์', 3:'อังคาร', 4:'พุธ'
 let isDark = false; 
 let selectedColor = null; 
 
-// 🌟 ระบบจัดการหน่วยความจำให้เสถียร (กันบั๊กค้าง 100%)
 let accounts = [];
 try {
     let rawAccounts = localStorage.getItem('psu_account_list');
@@ -531,16 +565,12 @@ if (!currentAccount || !accounts.find(a => a.id === currentAccount)) {
 let subjects = [];
 let tasks = []; 
 
-let editIndex = -1; 
-let editGroupName = null; 
+let editIndex = -1; let editGroupName = null; 
 let isFocusMode = false; 
 
 let editTaskIndex = -1; 
 let currentView = 'schedule';
 
-// ==========================================
-// 🌟 ฟังก์ชันเริ่มต้นระบบ LINE LIFF 
-// ==========================================
 async function initLIFF() {
     try {
         await liff.init({ liffId: "2010274088-XzAKwr2c" });
@@ -554,9 +584,6 @@ async function initLIFF() {
     }
 }
 
-// ==========================================
-// SPA NAVIGATION (ระบบสลับหน้า)
-// ==========================================
 function switchView(viewName) {
   currentView = viewName;
   document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
@@ -603,10 +630,7 @@ function showToast(message, type = 'success') {
 }
 
 function updateTimelineAndFocus() {
-  const now = new Date(); 
-  const day = now.getDay(); 
-  const hour = now.getHours(); 
-  const min = now.getMinutes();
+  const now = new Date(); const day = now.getDay(); const hour = now.getHours(); const min = now.getMinutes();
   let targetDayRow = (day >= 1 && day <= 5) ? day + 1 : -1;
 
   document.querySelectorAll('.card').forEach(card => {
@@ -656,37 +680,21 @@ function toggleFocusMode() {
 }
 setInterval(updateTimelineAndFocus, 60000);
 
-function openAccountModal() { 
-    document.getElementById('accountModal').style.display = 'flex'; 
-}
-
-function closeAccountModal() { 
-    document.getElementById('accountModal').style.display = 'none'; 
-}
-
+function openAccountModal() { document.getElementById('accountModal').style.display = 'flex'; }
+function closeAccountModal() { document.getElementById('accountModal').style.display = 'none'; }
 function createNewAccount() {
   const name = document.getElementById('NewAccName').value.trim(); 
   const pin = document.getElementById('NewAccPin').value.trim();
   
-  if (!name || !pin) { 
-      showToast('กรุณากรอกข้อมูลให้ครบก่อนนะครับ', 'warning'); 
-      return; 
-  }
-  
-  if(accounts.find(a => a.id === name)) { 
-      showToast('ชื่อบัญชีนี้มีอยู่แล้วครับ', 'error'); 
-      return; 
-  }
+  if (!name || !pin) { showToast('กรุณากรอกข้อมูลให้ครบก่อนนะครับ', 'warning'); return; }
+  if(accounts.find(a => a.id === name)) { showToast('ชื่อบัญชีนี้มีอยู่แล้วครับ', 'error'); return; }
   
   accounts.push({ id: name, name: name, pin: pin });
   localStorage.setItem('psu_account_list', JSON.stringify(accounts));
   currentAccount = name; 
   localStorage.setItem('psu_current_account', currentAccount);
   
-  closeAccountModal(); 
-  renderAccountDropdown(); 
-  loadAccountData();
-  
+  closeAccountModal(); renderAccountDropdown(); loadAccountData();
   showToast('ยินดีต้อนรับสู่ตารางเรียนใหม่! ✨', 'success');
   document.getElementById('NewAccName').value = ''; 
   document.getElementById('NewAccPin').value = '';
@@ -701,22 +709,10 @@ function openFormModal() {
   }
 }
 
-function closeFormModal() { 
-    document.getElementById('formModal').style.display = 'none'; 
-    resetEditMode(); 
-}
+function closeFormModal() { document.getElementById('formModal').style.display = 'none'; resetEditMode(); }
+function openHelp() { document.getElementById('helpModal').style.display = 'flex'; }
+function closeHelp() { document.getElementById('helpModal').style.display = 'none'; }
 
-function openHelp() { 
-    document.getElementById('helpModal').style.display = 'flex'; 
-}
-
-function closeHelp() { 
-    document.getElementById('helpModal').style.display = 'none'; 
-}
-
-// ==========================================
-// ℹ️ ระบบกดดูรายละเอียดวิชา (Pop-up)
-// ==========================================
 function showSubjectDetails(idx) {
   const s = subjects[idx];
   document.getElementById('infoName').textContent = s.name;
@@ -735,17 +731,11 @@ function showSubjectDetails(idx) {
       let color = 'var(--text)'; 
       let border = 'none';
       if (exam.status === 'today') { 
-          bg = 'rgba(255,59,48,0.1)'; 
-          color = 'var(--danger)'; 
-          border = '1px solid var(--danger)'; 
+          bg = 'rgba(255,59,48,0.1)'; color = 'var(--danger)'; border = '1px solid var(--danger)'; 
       } else if (exam.status === 'past') { 
-          bg = 'var(--input-bg)'; 
-          color = 'var(--text2)'; 
-          border = '1px solid var(--border)'; 
+          bg = 'var(--input-bg)'; color = 'var(--text2)'; border = '1px solid var(--border)'; 
       } else { 
-          bg = 'rgba(255,149,0,0.1)'; 
-          color = 'var(--warning)'; 
-          border = '1px solid var(--warning)'; 
+          bg = 'rgba(255,149,0,0.1)'; color = 'var(--warning)'; border = '1px solid var(--warning)'; 
       }
       return '<div style="padding: 12px; background: ' + bg + '; color: ' + color + '; border: ' + border + '; border-radius: 12px; font-weight: 800; font-size: 13.5px; text-align: left;">' + exam.text + '</div>';
   }
@@ -761,9 +751,7 @@ function showSubjectDetails(idx) {
   document.getElementById('infoModal').style.display = 'flex';
 }
 
-function closeInfoModal() {
-  document.getElementById('infoModal').style.display = 'none';
-}
+function closeInfoModal() { document.getElementById('infoModal').style.display = 'none'; }
 
 window.onclick = function(event) { 
   if (event.target == document.getElementById('formModal')) closeFormModal(); 
@@ -778,8 +766,7 @@ function renderAccountDropdown() {
   select.innerHTML = '';
   accounts.forEach(acc => { 
       const opt = document.createElement('option'); 
-      opt.value = acc.id; 
-      opt.textContent = acc.name; 
+      opt.value = acc.id; opt.textContent = acc.name; 
       if (acc.id === currentAccount) opt.selected = true; 
       select.appendChild(opt); 
   });
@@ -790,13 +777,9 @@ function setLoadingState(isLoading, message = '') {
   const spinner = document.getElementById('loaderSpinner'); 
   const text = document.getElementById('hintText');
   if (isLoading) { 
-      hintDiv.style.display = 'flex'; 
-      spinner.style.display = 'block'; 
-      text.style.color = 'var(--text2)';
-      text.textContent = message || 'กำลังโหลด...'; 
-  } else { 
-      spinner.style.display = 'none'; 
-  }
+      hintDiv.style.display = 'flex'; spinner.style.display = 'block'; 
+      text.style.color = 'var(--text2)'; text.textContent = message || 'กำลังโหลด...'; 
+  } else { spinner.style.display = 'none'; }
 }
 
 async function loadAccountData() {
@@ -821,8 +804,7 @@ async function loadAccountData() {
       } else { 
           setLoadingState(false); 
           document.getElementById('hintText').textContent = '🔒 เข้าถึงไม่ได้ (รหัสผ่านผิด)'; 
-          subjects = []; 
-          tasks = []; 
+          subjects = []; tasks = []; 
       }
     } else { 
       subjects = result.data || []; 
@@ -836,14 +818,10 @@ async function loadAccountData() {
     try {
         let savedTasks = localStorage.getItem('psu_tasks_' + currentAccount);
         tasks = savedTasks ? JSON.parse(savedTasks) : []; 
-    } catch(e) { 
-        tasks = []; 
-    }
+    } catch(e) { tasks = []; }
   }
   
-  resetEditMode(); 
-  renderAll(); 
-  renderTasks();
+  resetEditMode(); renderAll(); renderTasks();
 }
 
 async function syncToCloud() {
@@ -855,22 +833,14 @@ async function syncToCloud() {
     const response = await fetch(CLOUD_URL, { 
       method: 'POST', 
       body: JSON.stringify({ 
-          accountId: currentAccount, 
-          pin: currentPin, 
-          scheduleData: subjects, 
-          tasksData: tasks,
-          lineUserId: myLineUserId  
+          accountId: currentAccount, pin: currentPin, 
+          scheduleData: subjects, tasksData: tasks, lineUserId: myLineUserId  
       }) 
     });
     const result = await response.json();
-    if (result.status === "Error") {
-        showToast('บันทึกไม่สำเร็จ รหัสผ่านผิด!', 'error'); 
-    } else {
-        showToast('อัปเดตข้อมูลขึ้น Cloud สำเร็จ!', 'success');
-    }
-  } catch (error) { 
-    showToast('อัปเดตออฟไลน์เรียบร้อย (ไม่สามารถต่อ Cloud ได้)', 'info'); 
-  }
+    if (result.status === "Error") { showToast('บันทึกไม่สำเร็จ รหัสผ่านผิด!', 'error'); } 
+    else { showToast('อัปเดตข้อมูลขึ้น Cloud สำเร็จ!', 'success'); }
+  } catch (error) { showToast('อัปเดตออฟไลน์เรียบร้อย (ไม่สามารถต่อ Cloud ได้)', 'info'); }
 }
 
 function switchAccount() { 
@@ -880,104 +850,70 @@ function switchAccount() {
 }
 
 function deleteAccount() {
-  if (accounts.length <= 1) {
-      showToast('ต้องมีอย่างน้อย 1 บัญชี', 'warning');
-      return;
-  }
+  if (accounts.length <= 1) { showToast('ต้องมีอย่างน้อย 1 บัญชี', 'warning'); return; }
   if (confirm('นำบัญชี "' + currentAccount + '" ออกจากเครื่องนี้ใช่ไหม?')) {
     accounts = accounts.filter(a => a.id !== currentAccount); 
     localStorage.setItem('psu_account_list', JSON.stringify(accounts));
     currentAccount = accounts[0].id; 
     localStorage.setItem('psu_current_account', currentAccount);
-    renderAccountDropdown(); 
-    loadAccountData(); 
-    showToast('ลบบัญชีแล้ว', 'success');
+    renderAccountDropdown(); loadAccountData(); showToast('ลบบัญชีแล้ว', 'success');
   }
 }
 
 function getExamStatus(examDateStr, label) {
   if (!examDateStr) return null;
-  const today = new Date(); 
-  today.setHours(0,0,0,0);
-  const eDate = new Date(examDateStr); 
-  eDate.setHours(0,0,0,0);
+  const today = new Date(); today.setHours(0,0,0,0);
+  const eDate = new Date(examDateStr); eDate.setHours(0,0,0,0);
   const diffDays = Math.ceil((eDate - today) / (1000 * 60 * 60 * 24));
   const d = eDate.getDate().toString().padStart(2,'0'); 
   const m = (eDate.getMonth()+1).toString().padStart(2,'0'); 
   const y = eDate.getFullYear();
   const dateTxt = d + '/' + m + '/' + y;
   
-  if (diffDays > 0) {
-      return { text: "⏳ " + label + " " + dateTxt + " (อีก " + diffDays + " วัน)", status: 'upcoming' };
-  } else if (diffDays === 0) {
-      return { text: "🚨 " + label + " วันนี้!", status: 'today' };
-  } else {
-      return { text: "✅ " + label + " เสร็จแล้ว", status: 'past' };
-  }
+  if (diffDays > 0) { return { text: "⏳ " + label + " " + dateTxt + " (อีก " + diffDays + " วัน)", status: 'upcoming' }; } 
+  else if (diffDays === 0) { return { text: "🚨 " + label + " วันนี้!", status: 'today' }; } 
+  else { return { text: "✅ " + label + " เสร็จแล้ว", status: 'past' }; }
 }
 
 function renderExamTags(m, isDetail = false) {
-  let html = ''; 
-  let mid = getExamStatus(m.midtermDate, 'มิดเทอม'); 
-  let fin = getExamStatus(m.finalDate, 'ไฟนอล');
+  let html = ''; let mid = getExamStatus(m.midtermDate, 'มิดเทอม'); let fin = getExamStatus(m.finalDate, 'ไฟนอล');
   
   function makeTag(exam) {
     if(!exam) return '';
-    let baseClass = isDetail ? 'detail-tag' : 'exam-tag'; 
-    let extraStyle = '';
-    if (exam.status === 'today') {
-        extraStyle = isDetail ? 'background:rgba(255,59,48,0.1); color:var(--danger); border:1px solid var(--danger);' : 'background:var(--danger); color:#fff; border-color:var(--danger);';
-    } else if (exam.status === 'past') {
-        extraStyle = 'opacity:0.6;';
-    } else {
-        extraStyle = isDetail ? 'background:rgba(255,149,0,0.1); color:var(--warning); border:1px solid var(--warning);' : ''; 
-    }
+    let baseClass = isDetail ? 'detail-tag' : 'exam-tag'; let extraStyle = '';
+    if (exam.status === 'today') { extraStyle = isDetail ? 'background:rgba(255,59,48,0.1); color:var(--danger); border:1px solid var(--danger);' : 'background:var(--danger); color:#fff; border-color:var(--danger);'; } 
+    else if (exam.status === 'past') { extraStyle = 'opacity:0.6;'; } 
+    else { extraStyle = isDetail ? 'background:rgba(255,149,0,0.1); color:var(--warning); border:1px solid var(--warning);' : ''; }
     return '<span class="' + baseClass + '" style="' + extraStyle + '">' + exam.text + '</span>';
   }
   
-  html += makeTag(mid) + makeTag(fin); 
-  return html;
+  html += makeTag(mid) + makeTag(fin); return html;
 }
 
 function renderAll(){
   const grid = document.getElementById('Schedule');
   document.querySelectorAll('.card').forEach(c => c.remove());
-  const hintDiv = document.getElementById('hint'); 
-  const hintText = document.getElementById('hintText');
+  const hintDiv = document.getElementById('hint'); const hintText = document.getElementById('hintText');
   
   if (subjects.length === 0 && !hintText.textContent.includes('🔒') && !hintText.textContent.includes('❌')) {
-    setLoadingState(false); 
-    hintDiv.style.display = 'flex'; 
-    hintText.textContent = 'กดปุ่ม + มุมขวาล่างเพื่อเพิ่มวิชาเลยครับ';
-  } else if (subjects.length > 0) { 
-      hintDiv.style.display = 'none'; 
-  }
+    setLoadingState(false); hintDiv.style.display = 'flex'; hintText.textContent = 'กดปุ่ม + มุมขวาล่างเพื่อเพิ่มวิชาเลยครับ';
+  } else if (subjects.length > 0) { hintDiv.style.display = 'none'; }
   
   let placedCards = []; 
 
   subjects.forEach((s, idx) => {
     let overlapCount = 0;
-    placedCards.forEach(p => {
-       if (p.day == s.day && !(s.startPOS >= p.endPOS || s.endPOS <= p.startPOS)) {
-          overlapCount++;
-       }
-    });
+    placedCards.forEach(p => { if (p.day == s.day && !(s.startPOS >= p.endPOS || s.endPOS <= p.startPOS)) { overlapCount++; } });
     placedCards.push({day: s.day, startPOS: s.startPOS, endPOS: s.endPOS});
 
-    const card = document.createElement('div'); 
-    card.className = 'card';
-    card.style.background = s.bg; 
-    card.style.color = s.fg; 
-    card.style.borderLeft = "4px solid " + s.fg;
-    card.style.gridRow = s.day; 
-    card.style.gridColumn = s.startPOS + "/" + s.endPOS;
+    const card = document.createElement('div'); card.className = 'card';
+    card.style.background = s.bg; card.style.color = s.fg; card.style.borderLeft = "4px solid " + s.fg;
+    card.style.gridRow = s.day; card.style.gridColumn = s.startPOS + "/" + s.endPOS;
     card.style.order = (parseInt(s.day) * 1000) + parseInt(s.startPOS);
 
     if (overlapCount > 0) {
-        card.style.marginTop = (overlapCount * 22) + 'px';
-        card.style.marginLeft = (overlapCount * 12) + 'px';
-        card.style.zIndex = 10 + overlapCount;
-        card.style.boxShadow = "-4px -4px 15px rgba(0,0,0,0.15)";
+        card.style.marginTop = (overlapCount * 22) + 'px'; card.style.marginLeft = (overlapCount * 12) + 'px';
+        card.style.zIndex = 10 + overlapCount; card.style.boxShadow = "-4px -4px 15px rgba(0,0,0,0.15)";
     }
 
     card.innerHTML = `
@@ -995,40 +931,25 @@ function renderAll(){
     `;
     
     grid.appendChild(card);
-    const inner = card.querySelector('.card-inner'); 
-    let startX = 0;
+    const inner = card.querySelector('.card-inner'); let startX = 0;
     inner.addEventListener('touchstart', e => { startX = e.touches[0].clientX; }, {passive:true});
     inner.addEventListener('touchmove', e => { 
         let diff = startX - e.touches[0].clientX; 
-        if (diff > 40) {
-            card.classList.add('swiped'); 
-        } else if (diff < -40) {
-            card.classList.remove('swiped'); 
-        }
+        if (diff > 40) { card.classList.add('swiped'); } else if (diff < -40) { card.classList.remove('swiped'); }
     }, {passive:true});
   });
 
-  const detailsPanel = document.getElementById('DetailsPanel'); 
-  const subjectList = document.getElementById('SubjectList'); 
-  const subjectCount = document.getElementById('SubjectCount');
-  
+  const detailsPanel = document.getElementById('DetailsPanel'); const subjectList = document.getElementById('SubjectList'); const subjectCount = document.getElementById('SubjectCount');
   subjectList.innerHTML = '';
   
-  if (subjects.length === 0) { 
-      detailsPanel.style.display = 'none'; 
-  } else {
+  if (subjects.length === 0) { detailsPanel.style.display = 'none'; } 
+  else {
     detailsPanel.style.display = 'block';
     let groupedSubjects = {};
     subjects.forEach(s => {
       let key = s.name.trim();
-      if (!groupedSubjects[key]) { 
-          groupedSubjects[key] = { name: key, bg: s.bg, fg: s.fg, earliestDay: s.day, earliestStart: s.startPOS, meetings: [] }; 
-      } else { 
-          if (s.day < groupedSubjects[key].earliestDay) { 
-              groupedSubjects[key].earliestDay = s.day; 
-              groupedSubjects[key].earliestStart = s.startPOS; 
-          } 
-      }
+      if (!groupedSubjects[key]) { groupedSubjects[key] = { name: key, bg: s.bg, fg: s.fg, earliestDay: s.day, earliestStart: s.startPOS, meetings: [] }; } 
+      else { if (s.day < groupedSubjects[key].earliestDay) { groupedSubjects[key].earliestDay = s.day; groupedSubjects[key].earliestStart = s.startPOS; } }
       groupedSubjects[key].meetings.push({ day: s.day, start: s.start, end: s.end, room: s.room, startPOS: s.startPOS, midtermDate: s.midtermDate, finalDate: s.finalDate });
     });
     
@@ -1036,23 +957,14 @@ function renderAll(){
     subjectCount.textContent = groupedArray.length + ' วิชา';
     
     groupedArray.forEach((group) => {
-      group.meetings.sort((a,b) => { 
-          if (a.day !== b.day) return a.day - b.day; 
-          return a.startPOS - b.startPOS; 
-      });
-      
-      let meetingsHTML = group.meetings.map(m => { 
-          return '<div class="meeting-row"><span class="detail-tag">📅 วัน' + DAY_NAMES[m.day] + '</span><span class="detail-tag">⏰ ' + m.start + ' - ' + m.end + '</span><span class="detail-tag">📍 ' + m.room + '</span></div>'; 
-      }).join('');
+      group.meetings.sort((a,b) => { if (a.day !== b.day) return a.day - b.day; return a.startPOS - b.startPOS; });
+      let meetingsHTML = group.meetings.map(m => { return '<div class="meeting-row"><span class="detail-tag">📅 วัน' + DAY_NAMES[m.day] + '</span><span class="detail-tag">⏰ ' + m.start + ' - ' + m.end + '</span><span class="detail-tag">📍 ' + m.room + '</span></div>'; }).join('');
       
       let examTags = renderExamTags(group.meetings[0], true);
-      if (examTags) { 
-          meetingsHTML += '<div class="exam-tags-wrap" style="width: 100%; margin-top: 2px;">' + examTags + '</div>'; 
-      }
+      if (examTags) { meetingsHTML += '<div class="exam-tags-wrap" style="width: 100%; margin-top: 2px;">' + examTags + '</div>'; }
       
       const safeName = group.name.replace(/'/g, "\\'").replace(/"/g, "&quot;");
-      const item = document.createElement('div'); 
-      item.className = 'detail-item';
+      const item = document.createElement('div'); item.className = 'detail-item';
       item.innerHTML = `
         <div class="detail-color" style="background:${group.bg}; border: 2px solid ${group.fg};"></div>
         <div class="detail-info"><div class="detail-name">${group.name}</div><div class="detail-sub">${meetingsHTML}</div></div>
@@ -1076,16 +988,12 @@ function toggleSeparateTimes() {
 function renderSeparateTimeInputs() {
   const container = document.getElementById('SeparateTimeContainer');
   const checkedDays = Array.from(document.querySelectorAll('input[name="SubDays"]:checked')).map(cb => cb.value);
-  if (checkedDays.length === 0) { 
-      container.innerHTML = '<span style="font-size:12px; color:var(--text2); text-align:center;">กรุณาเลือกวันเรียนด้านบนก่อนครับ</span>'; 
-      return; 
-  }
+  if (checkedDays.length === 0) { container.innerHTML = '<span style="font-size:12px; color:var(--text2); text-align:center;">กรุณาเลือกวันเรียนด้านบนก่อนครับ</span>'; return; }
   
   let html = '';
   checkedDays.forEach(d => {
       let existingStartObj = document.getElementById('start_day_' + d);
       let existingStart = existingStartObj ? existingStartObj.value : (document.getElementById('StartTime').value || '08:00');
-      
       let existingEndObj = document.getElementById('end_day_' + d);
       let existingEnd = existingEndObj ? existingEndObj.value : (document.getElementById('EndTime').value || '09:30');
       
@@ -1099,211 +1007,121 @@ function renderSeparateTimeInputs() {
   container.innerHTML = html;
 }
 
-document.querySelectorAll('input[name="SubDays"]').forEach(cb => { 
-    cb.addEventListener('change', () => { 
-        if (document.getElementById('SeparateTimeToggle').checked) renderSeparateTimeInputs(); 
-    }); 
-});
+document.querySelectorAll('input[name="SubDays"]').forEach(cb => { cb.addEventListener('change', () => { if (document.getElementById('SeparateTimeToggle').checked) renderSeparateTimeInputs(); }); });
 
 function editGroup(name) {
   const group = subjects.filter(s => s.name === name);
   if(group.length === 0) return;
   const s = group[0];
   
-  document.getElementById('SubName').value = s.name; 
-  document.getElementById('SubRoom').value = s.room;
-  document.getElementById('MidtermDate').value = s.midtermDate || ''; 
-  document.getElementById('FinalDate').value = s.finalDate || '';
+  document.getElementById('SubName').value = s.name; document.getElementById('SubRoom').value = s.room;
+  document.getElementById('MidtermDate').value = s.midtermDate || ''; document.getElementById('FinalDate').value = s.finalDate || '';
   
   document.querySelectorAll('input[name="SubDays"]').forEach(cb => cb.checked = false);
-  group.forEach(item => { 
-      const cb = document.querySelector('input[name="SubDays"][value="' + item.day + '"]'); 
-      if(cb) cb.checked = true; 
-  });
+  group.forEach(item => { const cb = document.querySelector('input[name="SubDays"][value="' + item.day + '"]'); if(cb) cb.checked = true; });
 
   const isUniform = group.every(item => item.start === group[0].start && item.end === group[0].end);
-  document.getElementById('SeparateTimeToggle').checked = !isUniform; 
-  toggleSeparateTimes(); 
+  document.getElementById('SeparateTimeToggle').checked = !isUniform; toggleSeparateTimes(); 
   
   if (isUniform) { 
-      document.getElementById('StartTime').value = group[0].start; 
-      document.getElementById('EndTime').value = group[0].end; 
+      document.getElementById('StartTime').value = group[0].start; document.getElementById('EndTime').value = group[0].end; 
   } else { 
       group.forEach(item => { 
-          const sInput = document.getElementById('start_day_' + item.day); 
-          const eInput = document.getElementById('end_day_' + item.day); 
-          if (sInput) sInput.value = item.start; 
-          if (eInput) eInput.value = item.end; 
+          const sInput = document.getElementById('start_day_' + item.day); const eInput = document.getElementById('end_day_' + item.day); 
+          if (sInput) sInput.value = item.start; if (eInput) eInput.value = item.end; 
       }); 
   }
   
-  selectedColor = {bg: s.bg, fg: s.fg}; 
-  renderSwatches(); 
-  editIndex = -1; 
-  editGroupName = name; 
+  selectedColor = {bg: s.bg, fg: s.fg}; renderSwatches(); editIndex = -1; editGroupName = name; 
   
   document.getElementById('formTitle').textContent = 'แก้ไขวิชา (อัปเดตทุกวัน)';
-  const addBtn = document.getElementById('addBtn'); 
-  addBtn.innerHTML = 'บันทึกแก้ไข (ทุกวัน)'; 
-  addBtn.style.background = 'var(--warning)'; 
+  const addBtn = document.getElementById('addBtn'); addBtn.innerHTML = 'บันทึกแก้ไข (ทุกวัน)'; addBtn.style.background = 'var(--warning)'; 
   openFormModal();
 }
 
 function deleteGroup(name) { 
     if(confirm('ต้องการลบวิชา "' + name + '" ออกจากทุกวันเลยใช่ไหม?')) { 
-        subjects = subjects.filter(s => s.name !== name); 
-        renderAll(); 
-        syncToCloud(); 
-        showToast('ลบวิชา ' + name + ' เรียบร้อย', 'success'); 
+        subjects = subjects.filter(s => s.name !== name); renderAll(); syncToCloud(); showToast('ลบวิชา ' + name + ' เรียบร้อย', 'success'); 
     } 
 }
 
 function checkCollision(day, sMin, eMin, excludeIdx = -1, excludeName = null) {
   for (let i = 0; i < subjects.length; i++) {
-    if (i === excludeIdx) continue; 
-    let s = subjects[i];
+    if (i === excludeIdx) continue; let s = subjects[i];
     if (excludeName && s.name === excludeName) continue; 
     if (s.day == day && sMin < (s.endPOS - 2) && eMin > (s.startPOS - 2)) return s.name;
-  } 
-  return null;
+  } return null;
 }
 
 function editSubject(idx) {
   const s = subjects[idx];
-  document.getElementById('SubName').value = s.name; 
-  document.getElementById('SubRoom').value = s.room;
-  document.getElementById('MidtermDate').value = s.midtermDate || ''; 
-  document.getElementById('FinalDate').value = s.finalDate || '';
+  document.getElementById('SubName').value = s.name; document.getElementById('SubRoom').value = s.room;
+  document.getElementById('MidtermDate').value = s.midtermDate || ''; document.getElementById('FinalDate').value = s.finalDate || '';
   
   document.querySelectorAll('input[name="SubDays"]').forEach(cb => cb.checked = false);
-  const cb = document.querySelector('input[name="SubDays"][value="' + s.day + '"]'); 
-  if(cb) cb.checked = true;
+  const cb = document.querySelector('input[name="SubDays"][value="' + s.day + '"]'); if(cb) cb.checked = true;
   
-  document.getElementById('SeparateTimeToggle').checked = false; 
-  toggleSeparateTimes();
-  document.getElementById('StartTime').value = s.start; 
-  document.getElementById('EndTime').value = s.end;
-  selectedColor = {bg: s.bg, fg: s.fg}; 
-  renderSwatches(); 
+  document.getElementById('SeparateTimeToggle').checked = false; toggleSeparateTimes();
+  document.getElementById('StartTime').value = s.start; document.getElementById('EndTime').value = s.end;
+  selectedColor = {bg: s.bg, fg: s.fg}; renderSwatches(); 
   
-  editIndex = idx; 
-  editGroupName = null; 
+  editIndex = idx; editGroupName = null; 
   document.getElementById('formTitle').textContent = 'แก้ไขวิชา (เฉพาะคาบนี้)';
-  const addBtn = document.getElementById('addBtn'); 
-  addBtn.innerHTML = 'บันทึกแก้ไข'; 
-  addBtn.style.background = 'var(--warning)'; 
+  const addBtn = document.getElementById('addBtn'); addBtn.innerHTML = 'บันทึกแก้ไข'; addBtn.style.background = 'var(--warning)'; 
   openFormModal();
 }
 
 function resetEditMode() {
-  editIndex = -1; 
-  editGroupName = null;
-  document.getElementById('SubName').value = ''; 
-  document.getElementById('SubRoom').value = ''; 
-  document.getElementById('MidtermDate').value = ''; 
-  document.getElementById('FinalDate').value = '';
+  editIndex = -1; editGroupName = null;
+  document.getElementById('SubName').value = ''; document.getElementById('SubRoom').value = ''; 
+  document.getElementById('MidtermDate').value = ''; document.getElementById('FinalDate').value = '';
   document.querySelectorAll('input[name="SubDays"]').forEach(cb => cb.checked = false);
-  document.getElementById('SeparateTimeToggle').checked = false; 
-  toggleSeparateTimes();
-  selectedColor = null; 
-  renderSwatches();
+  document.getElementById('SeparateTimeToggle').checked = false; toggleSeparateTimes();
+  selectedColor = null; renderSwatches();
 }
 
 function addSubject(){
-  const name = document.getElementById('SubName').value.trim(); 
-  const room = document.getElementById('SubRoom').value.trim();
-  const midtermDate = document.getElementById('MidtermDate').value; 
-  const finalDate = document.getElementById('FinalDate').value;
+  const name = document.getElementById('SubName').value.trim(); const room = document.getElementById('SubRoom').value.trim();
+  const midtermDate = document.getElementById('MidtermDate').value; const finalDate = document.getElementById('FinalDate').value;
   const dayCheckboxes = Array.from(document.querySelectorAll('input[name="SubDays"]:checked'));
   const isSeparate = document.getElementById('SeparateTimeToggle').checked;
 
-  if(!name || !room) {
-      showToast('กรุณากรอกชื่อและห้องเรียนให้ครบถ้วน', 'warning');
-      return;
-  }
-  
-  if(dayCheckboxes.length === 0) {
-      showToast('กรุณาเลือกวันเรียนอย่างน้อย 1 วัน', 'warning');
-      return;
-  }
+  if(!name || !room) { showToast('กรุณากรอกชื่อและห้องเรียนให้ครบถ้วน', 'warning'); return; }
+  if(dayCheckboxes.length === 0) { showToast('กรุณาเลือกวันเรียนอย่างน้อย 1 วัน', 'warning'); return; }
   
   const chosenColor = selectedColor || (isDark ? DARK_PALETTES : PALETTES)[Math.floor(Math.random() * 8)];
-  const bg = chosenColor.bg;
-  const fg = chosenColor.fg;
+  const bg = chosenColor.bg; const fg = chosenColor.fg;
   
   let newMeetings = [];
 
   for (let i = 0; i < dayCheckboxes.length; i++) {
-      let d = dayCheckboxes[i].value; 
-      let start, end;
+      let d = dayCheckboxes[i].value; let start, end;
       
-      if (isSeparate) { 
-          start = document.getElementById('start_day_' + d).value; 
-          end = document.getElementById('end_day_' + d).value; 
-      } else { 
-          start = document.getElementById('StartTime').value; 
-          end = document.getElementById('EndTime').value; 
-      }
+      if (isSeparate) { start = document.getElementById('start_day_' + d).value; end = document.getElementById('end_day_' + d).value; } 
+      else { start = document.getElementById('StartTime').value; end = document.getElementById('EndTime').value; }
       
-      let sMin = (Number(start.split(':')[0]) - 8) * 60 + Number(start.split(':')[1]); 
-      let eMin = (Number(end.split(':')[0]) - 8) * 60 + Number(end.split(':')[1]);
+      let sMin = (Number(start.split(':')[0]) - 8) * 60 + Number(start.split(':')[1]); let eMin = (Number(end.split(':')[0]) - 8) * 60 + Number(end.split(':')[1]);
       
-      if(sMin < 0 || eMin > 900 || eMin <= sMin) {
-          showToast('เวลาในวัน' + DAY_NAMES[d] + 'ไม่ถูกต้อง', 'warning');
-          return;
-      }
+      if(sMin < 0 || eMin > 900 || eMin <= sMin) { showToast('เวลาในวัน' + DAY_NAMES[d] + 'ไม่ถูกต้อง', 'warning'); return; }
       
       let collision = checkCollision(d, sMin, eMin, editIndex, editGroupName);
-      if (collision) { 
-          if(navigator.vibrate) navigator.vibrate(200); 
-          showToast('เวลาชนกับวิชา "' + collision + '" (วัน' + DAY_NAMES[d] + ')!', 'error');
-          return; 
-      }
+      if (collision) { if(navigator.vibrate) navigator.vibrate(200); showToast('เวลาชนกับวิชา "' + collision + '" (วัน' + DAY_NAMES[d] + ')!', 'error'); return; }
       
-      newMeetings.push({ 
-          name: name, room: room, day: d, start: start, end: end, 
-          startPOS: sMin + 2, endPOS: eMin + 2, bg: bg, fg: fg, 
-          midtermDate: midtermDate, finalDate: finalDate 
-      });
+      newMeetings.push({ name: name, room: room, day: d, start: start, end: end, startPOS: sMin + 2, endPOS: eMin + 2, bg: bg, fg: fg, midtermDate: midtermDate, finalDate: finalDate });
   }
 
-  if (editGroupName) { 
-      subjects = subjects.filter(s => s.name !== editGroupName); 
-      subjects.push(...newMeetings); 
-      showToast('อัปเดตวิชาครบทุกวันเรียบร้อย', 'success'); 
-  } else if (editIndex !== -1) { 
-      subjects.splice(editIndex, 1); 
-      subjects.push(...newMeetings); 
-      showToast('แก้ไขวิชาสำเร็จ', 'success'); 
-  } else { 
-      subjects.push(...newMeetings); 
-      showToast('เพิ่มวิชาใหม่สำเร็จ', 'success'); 
-  }
+  if (editGroupName) { subjects = subjects.filter(s => s.name !== editGroupName); subjects.push(...newMeetings); showToast('อัปเดตวิชาครบทุกวันเรียบร้อย', 'success'); } 
+  else if (editIndex !== -1) { subjects.splice(editIndex, 1); subjects.push(...newMeetings); showToast('แก้ไขวิชาสำเร็จ', 'success'); } 
+  else { subjects.push(...newMeetings); showToast('เพิ่มวิชาใหม่สำเร็จ', 'success'); }
   
-  if(navigator.vibrate) navigator.vibrate(50); 
-  closeFormModal(); 
-  renderAll(); 
-  syncToCloud();
+  if(navigator.vibrate) navigator.vibrate(50); closeFormModal(); renderAll(); syncToCloud();
 }
 
-function del(idx) { 
-    subjects.splice(idx,1); 
-    renderAll(); 
-    syncToCloud(); 
-    showToast('ลบคาบเรียนนี้เรียบร้อย', 'success'); 
-}
-
-function clearAll() { 
-    if(confirm('ล้างตารางทั้งหมด? ข้อมูลบนคลาวด์จะหายไปด้วยนะ')){ 
-        subjects = []; 
-        renderAll(); 
-        syncToCloud(); 
-        showToast('ล้างตารางเรียนแล้ว', 'success'); 
-    } 
-}
+function del(idx) { subjects.splice(idx,1); renderAll(); syncToCloud(); showToast('ลบคาบเรียนนี้เรียบร้อย', 'success'); }
+function clearAll() { if(confirm('ล้างตารางทั้งหมด? ข้อมูลบนคลาวด์จะหายไปด้วยนะ')){ subjects = []; renderAll(); syncToCloud(); showToast('ล้างตารางเรียนแล้ว', 'success'); } }
 
 // ==========================================
-// 📦 ระบบจัดการงาน (Tasks ABC Model)
+// 📦 ระบบจัดการงาน (Tasks ABC Model + Kanban)
 // ==========================================
 function openTaskModal() {
   document.getElementById('taskModal').style.display = 'flex';
@@ -1312,51 +1130,63 @@ function openTaskModal() {
   subjectSelect.innerHTML = '<option value="">-- ไม่ระบุวิชา --</option>';
   const uniqueSubjects = [...new Set(subjects.map(s => s.name.trim()))];
   uniqueSubjects.forEach(sub => {
-    let opt = document.createElement('option');
-    opt.value = sub; 
-    opt.textContent = sub;
+    let opt = document.createElement('option'); opt.value = sub; opt.textContent = sub;
     subjectSelect.appendChild(opt);
   });
   
   if(editTaskIndex === -1) {
     document.getElementById('taskFormTitle').textContent = 'เพิ่มงานใหม่';
     document.getElementById('TaskName').value = '';
-    document.getElementById('TaskClass').value = 'B';
+    document.getElementById('TaskType').value = 'ทั่วไป';
+    document.getElementById('TaskStatus').value = 'TODO';
+    document.getElementById('TaskClass').value = 'AUTO';
     document.getElementById('TaskDeadline').value = '';
+    document.getElementById('TaskTime').value = '';
+    document.getElementById('TaskNote').value = '';
     document.getElementById('addTaskBtn').textContent = 'บันทึกงาน';
   }
 }
 
-function closeTaskModal() {
-  document.getElementById('taskModal').style.display = 'none';
-  editTaskIndex = -1;
-}
+function closeTaskModal() { document.getElementById('taskModal').style.display = 'none'; editTaskIndex = -1; }
 
 function saveTask() {
   const name = document.getElementById('TaskName').value.trim();
   const subject = document.getElementById('TaskSubject').value;
-  const classType = document.getElementById('TaskClass').value;
+  let classType = document.getElementById('TaskClass').value;
+  const originalClass = classType; // เก็บไว้เผื่อผู้ใช้เลือก AUTO
   const deadline = document.getElementById('TaskDeadline').value;
+  const time = document.getElementById('TaskTime').value;
+  const type = document.getElementById('TaskType').value;
+  const status = document.getElementById('TaskStatus').value;
+  const note = document.getElementById('TaskNote').value.trim();
   
-  if(!name) {
-      showToast('กรุณากรอกชื่องานด้วยครับ', 'warning');
-      return;
+  if(!name) { showToast('กรุณากรอกชื่องานด้วยครับ', 'warning'); return; }
+
+  // 🤖 ระบบ Auto-ABC (จัดเกรดความเสี่ยงอัตโนมัติจากวันส่ง)
+  if (classType === 'AUTO') {
+      if (!deadline) { classType = 'C'; } 
+      else {
+          const dlDate = new Date(deadline); const today = new Date();
+          dlDate.setHours(0,0,0,0); today.setHours(0,0,0,0);
+          const diffDays = Math.ceil((dlDate - today) / (1000 * 60 * 60 * 24));
+          if (diffDays <= 3) classType = 'A';
+          else if (diffDays <= 7) classType = 'B';
+          else classType = 'C';
+      }
   }
   
-  const taskObj = { id: Date.now(), name: name, subject: subject, classType: classType, deadline: deadline };
+  const taskObj = { 
+      id: editTaskIndex !== -1 ? tasks[editTaskIndex].id : Date.now(), 
+      name: name, subject: subject, classType: classType, 
+      deadline: deadline, time: time, type: type, note: note, 
+      status: status, autoMode: originalClass === 'AUTO'
+  };
   
-  if(editTaskIndex !== -1) {
-    tasks[editTaskIndex] = taskObj;
-    showToast('อัปเดตงานเรียบร้อย', 'success');
-  } else {
-    tasks.push(taskObj);
-    showToast('เพิ่มงานใหม่เรียบร้อย', 'success');
-  }
+  if(editTaskIndex !== -1) { tasks[editTaskIndex] = taskObj; showToast('อัปเดตงานเรียบร้อย', 'success'); } 
+  else { tasks.push(taskObj); showToast('เพิ่มงานใหม่เรียบร้อย', 'success'); }
   
   if(navigator.vibrate) navigator.vibrate(50);
-  closeTaskModal(); 
-  renderTasks(); 
-  syncToCloud();
+  closeTaskModal(); renderTasks(); syncToCloud();
 }
 
 function editTask(index) {
@@ -1367,18 +1197,28 @@ function editTask(index) {
   document.getElementById('taskFormTitle').textContent = 'แก้ไขงาน';
   document.getElementById('TaskName').value = t.name;
   document.getElementById('TaskSubject').value = t.subject || '';
-  document.getElementById('TaskClass').value = t.classType;
+  document.getElementById('TaskType').value = t.type || 'ทั่วไป';
+  document.getElementById('TaskStatus').value = t.status || 'TODO';
+  document.getElementById('TaskClass').value = t.autoMode ? 'AUTO' : (t.classType || 'B');
   document.getElementById('TaskDeadline').value = t.deadline || '';
+  document.getElementById('TaskTime').value = t.time || '';
+  document.getElementById('TaskNote').value = t.note || '';
   document.getElementById('addTaskBtn').textContent = 'บันทึกแก้ไข';
 }
 
 function deleteTask(index) {
-  if(confirm('เคลียร์งานนี้ทิ้งใช่ไหม?')) {
+  if(confirm('เคลียร์งานนี้ทิ้งจากระบบถาวรใช่ไหม?')) {
     tasks.splice(index, 1);
-    renderTasks(); 
-    syncToCloud();
-    showToast('เคลียร์งานเรียบร้อย ยินดีด้วย!', 'success');
+    renderTasks(); syncToCloud();
+    showToast('ลบงานออกจากระบบเรียบร้อย!', 'success');
   }
+}
+
+function toggleTaskDone(index) {
+    if (tasks[index].status === 'DONE') { tasks[index].status = 'TODO'; } 
+    else { tasks[index].status = 'DONE'; }
+    renderTasks(); syncToCloud();
+    if(navigator.vibrate) navigator.vibrate(50);
 }
 
 function renderTasks() {
@@ -1388,67 +1228,80 @@ function renderTasks() {
   let countA = 0, countB = 0, countC = 0;
   let sortedTasks = [...tasks];
   
-  if(sortType === 'FEFO') {
-    sortedTasks.sort((a, b) => {
-      if(!a.deadline) return 1; 
-      if(!b.deadline) return -1;
+  // เรียงลำดับ: งานที่เสร็จแล้ว (DONE) จะโดนเตะไปอยู่ล่างสุดเสมอ
+  sortedTasks.sort((a, b) => {
+    const statusA = a.status || 'TODO'; const statusB = b.status || 'TODO';
+    if (statusA === 'DONE' && statusB !== 'DONE') return 1;
+    if (statusA !== 'DONE' && statusB === 'DONE') return -1;
+
+    if(sortType === 'FEFO') {
+      if(!a.deadline) return 1; if(!b.deadline) return -1;
       return new Date(a.deadline) - new Date(b.deadline);
-    });
-  } else {
-    sortedTasks.sort((a, b) => a.classType.localeCompare(b.classType));
-  }
+    } else {
+      return (a.classType || 'B').localeCompare(b.classType || 'B');
+    }
+  });
 
   let html = '';
   
   sortedTasks.forEach(t => {
-    if(t.classType === 'A') countA++;
-    else if(t.classType === 'B') countB++;
-    else countC++;
+    const status = t.status || 'TODO';
+    const type = t.type || 'ทั่วไป';
+
+    // นับสถิติเฉพาะงานที่ยังไม่เสร็จ (WIP)
+    if (status !== 'DONE') {
+        if(t.classType === 'A') countA++;
+        else if(t.classType === 'B') countB++;
+        else countC++;
+    }
     
-    let diffDays = '?'; 
-    let dlText = ''; 
-    let urgentClass = '';
+    let diffDays = '?'; let dlText = ''; let urgentClass = '';
     
     if(t.deadline) {
       const dlDate = new Date(t.deadline); dlDate.setHours(0,0,0,0);
       const today = new Date(); today.setHours(0,0,0,0);
       diffDays = Math.ceil((dlDate - today) / (1000 * 60 * 60 * 24));
       
-      if(diffDays < 0) { 
-          dlText = "🚨 เลยกำหนดส่ง!"; 
-          urgentClass = "urgent-text"; 
-      } else if(diffDays === 0) { 
-          dlText = "🚨 ส่งวันนี้!"; 
-          urgentClass = "urgent-text"; 
-      } else if(diffDays <= 3) { 
-          dlText = "🚨 ROP Alert: อีก " + diffDays + " วัน!"; 
-          urgentClass = "urgent-text"; 
-      } else { 
-          dlText = "⏳ Lead Time: อีก " + diffDays + " วัน"; 
-      }
-    } else {
-      dlText = "✅ ไม่มีกำหนดส่ง";
-    }
+      if(diffDays < 0) { dlText = "🚨 เลยกำหนดส่ง!"; urgentClass = "urgent-text"; }
+      else if(diffDays === 0) { dlText = "🚨 ส่งวันนี้!"; urgentClass = "urgent-text"; }
+      else if(diffDays <= 3) { dlText = "🚨 ROP Alert: อีก " + diffDays + " วัน!"; urgentClass = "urgent-text"; }
+      else { dlText = "⏳ Lead Time: อีก " + diffDays + " วัน"; }
+    } else { dlText = "✅ ไม่มีกำหนดส่ง"; }
     
     let dateStr = t.deadline ? new Date(t.deadline).toLocaleDateString('th-TH', {day:'numeric', month:'short'}) : '-';
-    let badgeClass = t.classType === 'A' ? 'badge-a' : (t.classType === 'B' ? 'badge-b' : 'badge-c');
+    if (t.time) dateStr += " (" + t.time + " น.)";
+
+    let classBadge = t.classType === 'A' ? 'badge-a' : (t.classType === 'B' ? 'badge-b' : 'badge-c');
     let originalIndex = tasks.findIndex(orig => orig.id === t.id);
 
     let subjectTag = t.subject ? '<div class="task-subject">' + t.subject + '</div>' : '';
+    let noteTag = t.note ? '<div class="task-note">📝 ' + t.note + '</div>' : '';
+    let isDoneClass = status === 'DONE' ? 'task-done' : '';
+    let doneIcon = status === 'DONE' ? '🔄' : '✅';
+    let doneColor = status === 'DONE' ? '#6b7280' : 'var(--success)';
 
-    html += '<div class="task-card">' +
+    let statusBadgeStr = status === 'DONE' ? '✅ เสร็จแล้ว' : (status === 'DOING' ? '⏳ กำลังทำ' : '📌 To Do');
+    let statusBadgeClass = 'badge-' + status.toLowerCase();
+
+    html += '<div class="task-card ' + isDoneClass + '">' +
       '<div class="task-card-header">' +
         '<div class="task-title">' + t.name + '</div>' +
         '<div style="display:flex; gap:8px; align-items:center;">' +
-          '<div class="task-badge ' + badgeClass + '">Class ' + t.classType + '</div>' +
-          '<button class="icon-btn" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; background:var(--bg);" onclick="editTask(' + originalIndex + ')">✏️</button>' +
-          '<button class="icon-btn" style="width:28px; height:28px; padding:0; display:flex; align-items:center; justify-content:center; background:#ffe5e5; border-color:var(--danger); color:var(--danger);" onclick="deleteTask(' + originalIndex + ')">🗑️</button>' +
+          '<div class="task-badge badge-type">' + type + '</div>' +
+          '<div class="task-badge ' + statusBadgeClass + '">' + statusBadgeStr + '</div>' +
+          '<div class="task-badge ' + classBadge + '">Class ' + (t.classType || 'B') + '</div>' +
+          '<button class="icon-btn" style="width:28px; height:28px; padding:0; background:var(--bg);" onclick="editTask(' + originalIndex + ')" title="แก้ไข">✏️</button>' +
+          '<button class="icon-btn" style="width:28px; height:28px; padding:0; background:#ffe5e5; border-color:var(--danger); color:var(--danger);" onclick="deleteTask(' + originalIndex + ')" title="ลบทิ้ง">🗑️</button>' +
         '</div>' +
       '</div>' +
       subjectTag +
+      noteTag +
       '<div class="task-footer">' +
         '<div class="task-deadline ' + urgentClass + '">' + dlText + '</div>' +
-        '<div>ส่ง: ' + dateStr + '</div>' +
+        '<div style="display:flex; gap:12px; align-items:center;">' +
+           '<span>ส่ง: ' + dateStr + '</span>' +
+           '<button class="icon-btn" style="padding: 4px 10px; border-color:' + doneColor + '; color:' + doneColor + ';" onclick="toggleTaskDone(' + originalIndex + ')">' + doneIcon + (status === 'DONE' ? ' รื้อฟื้น' : ' เสร็จ') + '</button>' +
+        '</div>' +
       '</div>' +
     '</div>';
   });
@@ -1491,89 +1344,69 @@ function downloadImage(){
 }
 
 function toggleTheme() { 
-    isDark = !isDark; 
-    document.body.classList.toggle('dark', isDark); 
-    renderSwatches(); 
+    isDark = !isDark; document.body.classList.toggle('dark', isDark); renderSwatches(); 
 }
 
 function pickCustom(hex) { 
-    selectedColor = { bg: hex, fg: '#000' }; 
-    renderSwatches(); 
+    selectedColor = { bg: hex, fg: '#000' }; renderSwatches(); 
 }
 
 function renderSwatches() { 
     const pal = isDark ? DARK_PALETTES : PALETTES; 
-    const w = document.getElementById('swatches'); 
-    w.innerHTML = ''; 
+    const w = document.getElementById('swatches'); w.innerHTML = ''; 
     pal.forEach((p, i) => { 
         const s = document.createElement('div');
-        s.className = 'swatch';
-        s.style.background = p.bg;
-        s.onclick = () => {
-            selectedColor = p;
-            renderSwatches();
-        };
+        s.className = 'swatch'; s.style.background = p.bg;
+        s.onclick = () => { selectedColor = p; renderSwatches(); };
         w.appendChild(s);
     }); 
 }
 
-let ptrStart = 0; 
-let ptrCurrent = 0; 
-const ptrIndicator = document.getElementById('ptr-indicator');
+let ptrStart = 0; let ptrCurrent = 0; const ptrIndicator = document.getElementById('ptr-indicator');
 
-document.addEventListener('touchstart', e => { 
-    if(window.scrollY === 0) {
-        ptrStart = e.touches[0].clientY; 
-    }
-}, {passive:true});
-
+document.addEventListener('touchstart', e => { if(window.scrollY === 0) { ptrStart = e.touches[0].clientY; } }, {passive:true});
 document.addEventListener('touchmove', e => {
   if(window.scrollY === 0 && ptrStart > 0) { 
-      ptrCurrent = e.touches[0].clientY; 
-      let diff = ptrCurrent - ptrStart; 
-      if(diff > 0) {
-          ptrIndicator.style.transform = "translateY(" + Math.min(diff, 80) + "px)"; 
-      }
+      ptrCurrent = e.touches[0].clientY; let diff = ptrCurrent - ptrStart; 
+      if(diff > 0) { ptrIndicator.style.transform = "translateY(" + Math.min(diff, 80) + "px)"; }
   }
 }, {passive:true});
-
 document.addEventListener('touchend', e => {
   if(ptrStart > 0 && ptrCurrent - ptrStart > 60 && window.scrollY === 0) {
     if(navigator.vibrate) navigator.vibrate(50); 
     ptrIndicator.innerHTML = '⏳ กำลังซิงค์ข้อมูล...';
     loadAccountData().then(() => { 
-        ptrIndicator.style.transform = "translateY(0)"; 
-        setTimeout(() => {
-            ptrIndicator.innerHTML = '⬇️ ดึงลงเพื่ออัปเดตตาราง';
-        }, 300); 
+        ptrIndicator.style.transform = "translateY(0)"; setTimeout(() => { ptrIndicator.innerHTML = '⬇️ ดึงลงเพื่ออัปเดตตาราง'; }, 300); 
     });
-  } else { 
-      ptrIndicator.style.transform = "translateY(0)"; 
-  }
-  ptrStart = 0; 
-  ptrCurrent = 0;
+  } else { ptrIndicator.style.transform = "translateY(0)"; }
+  ptrStart = 0; ptrCurrent = 0;
 });
 
 const gridSchedule = document.getElementById('Schedule');
 for(let i = 0; i < 16; i++) { 
     const d = document.createElement('div'); 
-    d.className = 'time-lbl'; 
-    d.style.gridRow = 1; 
-    d.style.gridColumn = (i * 60) + 2; 
+    d.className = 'time-lbl'; d.style.gridRow = 1; d.style.gridColumn = (i * 60) + 2; 
     d.textContent = String(i + 8).padStart(2, '0') + ':00'; 
     gridSchedule.appendChild(d); 
 }
 
 // 🌟 1. ดึงตารางมาเลยทันที ไม่ต้องง้อ LINE
-renderSwatches(); 
-renderAccountDropdown(); 
-loadAccountData(); 
-
+renderSwatches(); renderAccountDropdown(); loadAccountData(); 
 // 🌟 2. ให้ LINE โหลดอยู่เงียบๆ แบคกราวน์
 initLIFF();
 
 document.getElementById('focusBtn').style.opacity = isFocusMode ? '1' : '0.5';
 document.getElementById('focusBtn').style.background = isFocusMode ? 'rgba(0,102,204,0.1)' : 'var(--panel)';
+// 🌟 วางโค้ดใหม่ตรงนี้ครับ (ก่อนบรรทัด </sub>ปิด)
+window.addEventListener('load', () => {
+    const hasSeenHelp = localStorage.getItem('psu_help_shown');
+    if (!hasSeenHelp) {
+        setTimeout(() => {
+            document.getElementById('helpModal').style.display = 'flex';
+            localStorage.setItem('psu_help_shown', 'true');
+        }, 1000);
+    }
+});
 </script>
 </body>
 </html>
