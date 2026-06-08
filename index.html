@@ -576,11 +576,19 @@ let currentView = 'schedule';
 
 async function initLIFF() {
     try {
+        // ใช้ LIFF ID ของคุณไพสิฐ
         await liff.init({ liffId: "2010274088-XzAKwr2c" });
         if (liff.isLoggedIn()) {
             const profile = await liff.getProfile();
             myLineUserId = profile.userId; 
             console.log("LIFF Init Success: " + myLineUserId);
+            
+            // 🌟 ทริคพิเศษ: เช็คว่าเปิดมาจากปุ่ม "+งาน" ในแชทสมศรีหรือไม่
+            const urlParams = new URLSearchParams(window.location.search);
+            if(urlParams.get('action') === 'add_task') {
+                switchView('tasks'); // สลับไปหน้าจัดการงาน
+                setTimeout(() => openTaskModal(), 500); // เด้งฟอร์มเพิ่มงานขึ้นมาทันที!
+            }
         }
     } catch (err) {
         console.error("LIFF Init Error: ", err);
