@@ -26,7 +26,7 @@ window.onerror = function(msg, url, line, col, error) {
 /* ========================================= */
 *{box-sizing:border-box;margin:0;padding:0; -webkit-tap-highlight-color: transparent;}
 :root{
-  --min-w:1.6px;--header-w:90px;
+  --header-w:90px;
   --row-h:80px;
   --time-h:38px;
   --bg:#F8F9FA;--panel:#ffffff;--text:#1d1d1f;--text2:#58585d;--border:#f0f0f0;
@@ -54,11 +54,28 @@ h1{font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;color:var(--te
 .icon-btn[aria-label]{position:relative}
 .icon-btn:disabled{opacity:0.6; cursor:not-allowed}
 .panel{background:var(--panel);border-radius:20px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow); transition: background 0.3s ease;}
-/* Schedule */
+
+/* ========================================= */
+/* 📅 ระบบ Schedule Grid ยืดหยุ่น 100% (Responsive) */
+/* ========================================= */
 .schedule-wrap{overflow-x:auto;border-radius:16px;scrollbar-width:none;}
 .schedule-wrap::-webkit-scrollbar { display: none; }
-#capture-area{background:var(--panel);border-radius:16px;padding:12px;}
-.schedule-grid{position:relative; display:grid;min-width:calc(var(--header-w) + 720 * var(--min-w));grid-template-columns:var(--header-w) repeat(720,var(--min-w));grid-template-rows:var(--time-h) repeat(5,var(--row-h));background-image:repeating-linear-gradient(to right,var(--grid-line) 0,var(--grid-line) 1px,transparent 1px,transparent calc(var(--min-w)*60));background-size:calc(var(--min-w)*60) 100%;background-position:var(--header-w) 0;}
+#capture-area{background:var(--panel);border-radius:16px;padding:12px; width:100%; min-width:fit-content;}
+
+/* จุดสำคัญ: ใช้ 1fr แบ่งคอลัมน์ และวาดพื้นหลังตามสัดส่วนจอ */
+.schedule-grid {
+    position:relative; 
+    display:grid; 
+    width:100%; 
+    min-width:1000px; 
+    grid-template-columns:var(--header-w) repeat(720, minmax(0, 1fr)); 
+    grid-template-rows:var(--time-h) repeat(5, var(--row-h)); 
+    background-image:repeating-linear-gradient(to right, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent calc(100% / 12)); 
+    background-size:calc(100% - var(--header-w)) 100%; 
+    background-position:right top; 
+    background-repeat:no-repeat;
+}
+
 .corner{grid-column:1;grid-row:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--hint);font-weight:700;}
 .time-lbl{grid-row:1;display:flex;align-items:center;padding-left:6px;font-size:12px;color:var(--text2);font-weight:700;}
 .day-lbl{grid-column:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;border-radius:12px;margin:6px 10px 6px 0;transition: opacity 0.2s ease;}
@@ -209,7 +226,7 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
 @media (max-width: 600px) {
   body:not(.exporting) .topbar { flex-direction: column; align-items: flex-start; }
   body:not(.exporting) .account-controls { width: 100%; justify-content: flex-start; gap:8px; overflow-x: auto; padding-bottom: 5px;}
-  body:not(.exporting) .schedule-grid { display: flex; flex-direction: column; min-width: 100%; background-image: none; gap: 10px; }
+  body:not(.exporting) .schedule-grid { display: flex; flex-direction: column; min-width: 100%; max-width: 100%; background-image: none; gap: 10px; }
   body:not(.exporting) .day-lbl { width: 100%; margin: 16px 0 4px 0; padding: 10px 14px; justify-content: flex-start; }
   
   body:not(.exporting) .card { width: 100%; margin: 0 !important; min-height: 85px; display: flex; flex-direction: column; height: auto;}
@@ -675,7 +692,7 @@ function updateTimelineAndFocus() {
   const totalMins = (hour - 8) * 60 + min;
   if (totalMins >= 0 && totalMins <= 720 && targetDayRow !== -1) {
     timeline.style.display = 'block'; 
-    timeline.style.left = 'calc(var(--header-w) + ' + totalMins + ' * var(--min-w))';
+    timeline.style.left = 'calc(var(--header-w) + ((100% - var(--header-w)) * ' + (totalMins / 720) + '))';
   } else { 
       timeline.style.display = 'none'; 
   }
@@ -1408,7 +1425,8 @@ initLIFF();
 
 document.getElementById('focusBtn').style.opacity = isFocusMode ? '1' : '0.5';
 document.getElementById('focusBtn').style.background = isFocusMode ? 'rgba(0,102,204,0.1)' : 'var(--panel)';
-// 🌟 วางโค้ดใหม่ตรงนี้ครับ (ก่อนบรรทัด </sub>ปิด)
+
+// 🌟 ระบบจำสถานะ: เด้งคู่มือแค่ครั้งแรก
 window.addEventListener('load', () => {
     const hasSeenHelp = localStorage.getItem('psu_help_shown');
     if (!hasSeenHelp) {
