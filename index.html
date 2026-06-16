@@ -58,7 +58,7 @@ h1{font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;color:var(--te
 .schedule-wrap{overflow-x:auto;border-radius:16px;scrollbar-width:none;}
 .schedule-wrap::-webkit-scrollbar { display: none; }
 #capture-area{background:var(--panel);border-radius:16px;padding:12px;}
-.schedule-grid{position:relative; display:grid;min-width:calc(var(--header-w) + 900 * var(--min-w));grid-template-columns:var(--header-w) repeat(900,var(--min-w));grid-template-rows:var(--time-h) repeat(5,var(--row-h));background-image:repeating-linear-gradient(to right,var(--grid-line) 0,var(--grid-line) 1px,transparent 1px,transparent calc(var(--min-w)*60));background-size:calc(var(--min-w)*60) 100%;background-position:var(--header-w) 0;}
+.schedule-grid{position:relative; display:grid;min-width:calc(var(--header-w) + 720 * var(--min-w));grid-template-columns:var(--header-w) repeat(720,var(--min-w));grid-template-rows:var(--time-h) repeat(5,var(--row-h));background-image:repeating-linear-gradient(to right,var(--grid-line) 0,var(--grid-line) 1px,transparent 1px,transparent calc(var(--min-w)*60));background-size:calc(var(--min-w)*60) 100%;background-position:var(--header-w) 0;}
 .corner{grid-column:1;grid-row:1;display:flex;align-items:center;justify-content:center;font-size:12px;color:var(--hint);font-weight:700;}
 .time-lbl{grid-row:1;display:flex;align-items:center;padding-left:6px;font-size:12px;color:var(--text2);font-weight:700;}
 .day-lbl{grid-column:1;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:800;border-radius:12px;margin:6px 10px 6px 0;transition: opacity 0.2s ease;}
@@ -141,7 +141,7 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
 
 .spinner { width: 36px; height: 36px; border: 3px solid var(--border); border-top-color: var(--accent); border-radius: 50%; animation: spin 1s linear infinite; display: none; }
 @keyframes spin { to { transform: rotate(360deg); } }
-.empty-hint { grid-column:2/902; grid-row:2/7; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; color:var(--text2); font-size:15px; pointer-events:none; font-weight:600; }
+.empty-hint { grid-column:2/722; grid-row:2/7; display:flex; flex-direction:column; gap:12px; align-items:center; justify-content:center; color:var(--text2); font-size:15px; pointer-events:none; font-weight:600; }
 
 /* Details list */
 .detail-header { font-family: 'Outfit', sans-serif; font-size: 18px; font-weight: 800; color: var(--text); margin-bottom: 16px; display:flex; justify-content:space-between; align-items:center;}
@@ -282,7 +282,7 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
   <div><h1 id="pageTitle">ตารางเรียน 🔒</h1><p class="subtitle" id="pageSubtitle">Super App Edition</p></div>
   <div class="account-controls" style="display:flex; gap:8px; align-items: center;" id="TopControls">
     <select id="AccountSelector" class="theme-toggle" onchange="switchAccount()"></select>
-    <button class="theme-toggle" onclick="window.open('https://lin.ee/yH4DYqN', '_blank')" title="เปิดแชทสมศรี" style="color: #00C300; border-color: #00C300; background: 	rgba(0, 195, 0, 0.05);">
+    <button class="theme-toggle" onclick="window.open('https://lin.ee/yH4DYqN', '_blank')" title="เปิดแชทสมศรี" style="color: #00C300; border-color: #00C300; background:  rgba(0, 195, 0, 0.05);">
       💬 คุยกับสมศรี
     </button>
     <button class="icon-btn" onclick="openAccountModal()" title="เพิ่มบัญชีใหม่">➕</button>
@@ -673,7 +673,7 @@ function updateTimelineAndFocus() {
 
   const timeline = document.getElementById('CurrentTimeLine');
   const totalMins = (hour - 8) * 60 + min;
-  if (totalMins >= 0 && totalMins <= 900 && targetDayRow !== -1) {
+  if (totalMins >= 0 && totalMins <= 720 && targetDayRow !== -1) {
     timeline.style.display = 'block'; 
     timeline.style.left = 'calc(var(--header-w) + ' + totalMins + ' * var(--min-w))';
   } else { 
@@ -1113,7 +1113,7 @@ function addSubject(){
       
       let sMin = (Number(start.split(':')[0]) - 8) * 60 + Number(start.split(':')[1]); let eMin = (Number(end.split(':')[0]) - 8) * 60 + Number(end.split(':')[1]);
       
-      if(sMin < 0 || eMin > 900 || eMin <= sMin) { showToast('เวลาในวัน' + DAY_NAMES[d] + 'ไม่ถูกต้อง', 'warning'); return; }
+      if(sMin < 0 || eMin > 720 || eMin <= sMin) { showToast('เวลาในวัน' + DAY_NAMES[d] + 'ไม่ถูกต้อง (ต้องไม่เกิน 20:00)', 'warning'); return; }
       
       let collision = checkCollision(d, sMin, eMin, editIndex, editGroupName);
       if (collision) { if(navigator.vibrate) navigator.vibrate(200); showToast('เวลาชนกับวิชา "' + collision + '" (วัน' + DAY_NAMES[d] + ')!', 'error'); return; }
@@ -1394,7 +1394,7 @@ document.addEventListener('touchend', e => {
 });
 
 const gridSchedule = document.getElementById('Schedule');
-for(let i = 0; i < 16; i++) { 
+for(let i = 0; i < 13; i++) { 
     const d = document.createElement('div'); 
     d.className = 'time-lbl'; d.style.gridRow = 1; d.style.gridColumn = (i * 60) + 2; 
     d.textContent = String(i + 8).padStart(2, '0') + ':00'; 
