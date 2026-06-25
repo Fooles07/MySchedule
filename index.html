@@ -1348,6 +1348,7 @@ function renderTasks() {
 }
 
 function downloadImage(){ 
+  window.scrollTo(0,0); // 🌟 ทริคเสริม: เลื่อนจอไปบนสุดก่อนถ่าย กันบั๊กรูปขาด
   document.body.classList.add('exporting'); 
   showToast('กำลังประมวลผลรูปภาพ...', 'info');
   const tempFocusState = isFocusMode; 
@@ -1356,13 +1357,21 @@ function downloadImage(){
   setTimeout(() => {
     const area = document.getElementById('capture-area');
     const originalWidth = area.style.width; 
-    area.style.width = area.scrollWidth + 'px';
     
-    html2canvas(area, { scale: 2, backgroundColor: isDark ? '#1c1c1e' : '#ffffff', windowWidth: area.scrollWidth }).then(c => {
+    // 🌟 ทริคหลัก: บังคับความกว้างให้เป็น 1400px ตอนถ่ายรูป (สัดส่วนจะสวยที่สุด)
+    area.style.width = '1400px'; 
+    
+    html2canvas(area, { 
+      scale: 2, 
+      backgroundColor: isDark ? '#1c1c1e' : '#ffffff', 
+      windowWidth: 1400 // หลอกให้ระบบกล้องคิดว่าจอเรากว้าง 1400px
+    }).then(c => {
       const a = document.createElement('a'); 
       a.download = 'PSU_Schedule.png'; 
       a.href = c.toDataURL('image/png'); 
       a.click();
+      
+      // ถ่ายเสร็จ คืนค่าความกว้างกลับเป็นยืดหยุ่น 100% เหมือนเดิม
       area.style.width = originalWidth; 
       document.body.classList.remove('exporting'); 
       showToast('บันทึกรูปตารางเรียนสำเร็จ! 📸', 'success');
