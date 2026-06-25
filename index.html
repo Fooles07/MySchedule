@@ -1348,36 +1348,67 @@ function renderTasks() {
 }
 
 function downloadImage(){ 
-  window.scrollTo(0,0); // 🌟 ทริคเสริม: เลื่อนจอไปบนสุดก่อนถ่าย กันบั๊กรูปขาด
+  window.scrollTo(0,0); // เลื่อนจอไปบนสุดกันรูปแหว่ง
   document.body.classList.add('exporting'); 
-  showToast('กำลังประมวลผลรูปภาพ...', 'info');
+  showToast('กำลังเตรียมรูปภาพ (รอสักครู่)...', 'info');
   const tempFocusState = isFocusMode; 
   if (tempFocusState) toggleFocusMode();
   
   setTimeout(() => {
     const area = document.getElementById('capture-area');
-    const originalWidth = area.style.width; 
+    const wrap = document.querySelector('.schedule-wrap');
+    const grid = document.getElementById('Schedule');
     
-    // 🌟 ทริคหลัก: บังคับความกว้างให้เป็น 1400px ตอนถ่ายรูป (สัดส่วนจะสวยที่สุด)
-    area.style.width = '1400px'; 
+    // 🌟 1. จำการตั้งค่าหน้าจอเดิมไว้ก่อน
+    const origAreaCss = area.style.cssText;
+    const origWrapCss = wrap.style.cssText;
+    const origGridCss = grid.style.cssText;
     
-    html2canvas(area, { 
-      scale: 2, 
-      backgroundColor: isDark ? '#1c1c1e' : '#ffffff', 
-      windowWidth: 1400 // หลอกให้ระบบกล้องคิดว่าจอเรากว้าง 1400px
-    }).then(c => {
-      const a = document.createElement('a'); 
-      a.download = 'PSU_Schedule.png'; 
-      a.href = c.toDataURL('image/png'); 
-      a.click();
-      
-      // ถ่ายเสร็จ คืนค่าความกว้างกลับเป็นยืดหยุ่น 100% เหมือนเดิม
-      area.style.width = originalWidth; 
-      document.body.classList.remove('exporting'); 
-      showToast('บันทึกรูปตารางเรียนสำเร็จ! 📸', 'success');
-      if (tempFocusState) toggleFocusMode();
-    });
-  }, 400); 
+    // 🌟 2. ปลดล็อค iPad: บังคับตารางลอยขึ้นมาและกางเต็ม 1400px
+    wrap.style.overflow = 'visible';
+    area.style.position = 'absolute';
+    area.style.top = '0';
+    area.style.left = '0';
+    area.style.width = '1400px';
+    area.style.maxWidth = 'none';
+    area.style.zIndex = '9999'; // ลอยไว้หน้าสุด
+    
+    // บังคับ Grid ให้กว้าง 1400px เป๊ะๆ ป้องกันช่องเบี้ยว
+    grid.style.width = '1400px';
+    grid.style.minWidth = '1400px';
+
+    // 🌟 3. หน่วงเวลา 0.6 วินาที ให้ iPad วาดภาพที่ซ่อนอยู่ให้เสร็จก่อนถ่าย
+    setTimeout(() => {
+        html2canvas(area, { 
+          scale: 2, 
+          useCORS: true,
+          backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
+          width: 1400, // บังคับรูปกว้าง 1400px
+          windowWidth: 1400
+        }).then(c => {
+          const a = document.createElement('a'); 
+          a.download = 'PSU_Schedule.png'; 
+          a.href = c.toDataURL('image/png', 1.0); 
+          a.click();
+          
+          // 🌟 4. คืนค่าหน้าเว็บกลับสู่สภาพเดิมให้เนียนที่สุด
+          area.style.cssText = origAreaCss;
+          wrap.style.cssText = origWrapCss;
+          grid.style.cssText = origGridCss;
+          
+          document.body.classList.remove('exporting'); 
+          showToast('บันทึกรูปตารางเรียนสำเร็จ! 📸', 'success');
+          if (tempFocusState) toggleFocusMode();
+        }).catch(err => {
+          // กรณี Error ก็ต้องคืนค่าเดิมด้วย
+          area.style.cssText = origAreaCss;
+          wrap.style.cssText = origWrapCss;
+          grid.style.cssText = origGridCss;
+          document.body.classList.remove('exporting'); 
+          showToast('เกิดข้อผิดพลาดในการเซฟรูป', 'error');
+        });
+    }, 600); // <--- เคล็ดลับอยู่ตรงเวลา 600ms นี้ครับ
+  }, 100); 
 }
 
 function toggleTheme() { 
