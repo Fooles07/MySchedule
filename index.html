@@ -7,7 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
 
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
 
 <script>
 window.onerror = function(msg, url, line, col, error) {
@@ -89,12 +89,11 @@ body.dark .day-lbl.tue{background:#3a0c1a;color:#ff80ab;}
 body.dark .day-lbl.wed{background:#0d290d;color:#81c784;}
 body.dark .day-lbl.thu{background:#3a1d00;color:#ffb74d;}
 body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
-/* Focus + timeline */
 .dimmed{ opacity:0.35; filter:grayscale(40%); }
 .current-time-line{ position:absolute; top:var(--time-h); bottom:0; width:2px; background:var(--accent); z-index:20; pointer-events:none; display:none; }
 .current-time-dot{ position:absolute; top:-5px; left:-4px; width:10px; height:10px; border-radius:50%; background:var(--accent); box-shadow:0 0 8px var(--accent); }
 
-/* การ์ดวิชา */
+/* 🌟 แก้บั๊กตัวหนังสือขาดครึ่งของ Safari */
 .card {
   margin: 4px 2px;
   border-radius: 12px;
@@ -108,8 +107,6 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
   height: calc(100% - 8px);
 }
 .card:hover { z-index: 100 !important; box-shadow: 0 15px 30px rgba(0,0,0,0.15); transform: translateY(-4px) scale(1.03); }
-.card:focus-within{outline:2px solid var(--accent)}
-
 .card-inner {
   padding: 8px 10px;
   flex: 1;
@@ -121,23 +118,29 @@ body.dark .day-lbl.fri{background:#0a233f;color:#64b5f6;}
   position: relative;
   z-index: 2;
   background: inherit;
-  transition: transform 0.25s ease;
   cursor: pointer;
 }
-
 .card b {
-  display: -webkit-box;
-  -webkit-line-clamp: 2; 
-  -webkit-box-orient: vertical;
-  font-size: 12.5px;
+  display: block; /* ไม่ใช้ -webkit-box แล้ว Safari จะได้ไม่งง */
+  font-size: 12px;
   font-weight: 800;
   white-space: normal; 
   overflow: hidden;
-  line-height: 1.25;
+  line-height: 1.2;
+  max-height: 2.4em; /* บังคับแสดงแค่ 2 บรรทัด */
   margin-bottom: 2px;
 }
+.card span, .card small { 
+  display: block; 
+  opacity: 0.9; 
+  font-size: 10px; 
+  font-weight: 700; 
+  line-height: 1.1; 
+  white-space: nowrap; 
+  overflow: hidden; 
+  text-overflow: ellipsis; 
+}
 
-.card span, .card small { opacity: 0.9; font-size: 10.5px; font-weight: 700; line-height: 1.1; }
 .exam-tags-wrap { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 2px; width: 100%; }
 .exam-tag { display: inline-flex; align-items: center; padding: 2px 5px; background: rgba(255,255,255,0.4); border-radius: 4px; font-size: 9px; font-weight: 800; color: inherit; border: 1px solid rgba(255,255,255,0.3); line-height: 1.2; }
 
@@ -1347,58 +1350,56 @@ function renderTasks() {
   document.getElementById('countC').textContent = countC;
 }
 
-// 🌟🌟 ฟังก์ชันใหม่: ใช้กล้อง html-to-image ถ่ายรูปเป๊ะ 100%
+// 🌟🌟 ฟังก์ชันใหม่: ล็อค iPad ให้กางตาราง 1200px ชั่วคราวเพื่อถ่ายรูป
 function downloadImage(){ 
   window.scrollTo(0,0);
-  const wrap = document.querySelector('.schedule-wrap');
-  if(wrap) wrap.scrollLeft = 0;
-
   document.body.classList.add('exporting'); 
-  showToast('กำลังประมวลผลรูปภาพ (วิธีใหม่)... 📸', 'info');
+  showToast('กำลังประมวลผลรูปภาพ... 📸', 'info');
   
   const tempFocusState = isFocusMode; 
   if (tempFocusState) toggleFocusMode();
   
   setTimeout(() => {
     const area = document.getElementById('capture-area');
+    const wrap = document.querySelector('.schedule-wrap');
     const grid = document.getElementById('Schedule');
     const timeline = document.getElementById('CurrentTimeLine'); 
     
-    // จำค่าเดิมไว้ทั้งหมด
     const origWrapCss = wrap.style.cssText;
     const origAreaCss = area.style.cssText;
     const origGridCss = grid.style.cssText;
     const origTimelineDisplay = timeline ? timeline.style.display : 'none'; 
     
-    // ซ่อนเส้นเวลาก่อนถ่าย
     if(timeline) timeline.style.display = 'none'; 
     
-    // 🌟 ปลดล็อค iPad: กางตารางให้เต็มที่ 1200px แบบตายตัว
-    wrap.style.overflow = 'visible'; 
-    
-    area.style.width = '1200px'; 
-    area.style.minWidth = '1200px';
-    area.style.maxWidth = 'none';
-    area.style.padding = '24px'; 
+    // 🌟 ไม้ตาย: สร้าง Style ชั่วคราว บังคับ iPad ให้กางหน้าเว็บกว้างเท่าจอคอม
+    const style = document.createElement('style');
+    style.innerHTML = `
+        body, html { width: 1200px !important; height: auto !important; overflow: visible !important; }
+        .schedule-wrap { overflow: visible !important; width: 1200px !important; }
+        #capture-area { width: 1200px !important; padding: 20px !important; box-sizing: border-box !important; }
+        #Schedule { width: 1160px !important; min-width: 1160px !important; grid-template-columns: 90px repeat(720, 1.486px) !important; }
+    `;
+    document.head.appendChild(style);
 
-    // 🌟 เปลี่ยนตารางจากสัดส่วน 1fr -> เป็นพิกเซลเป๊ะๆ เพื่อให้ Safari ไม่สับสน
-    grid.style.width = '1152px';
-    grid.style.minWidth = '1152px';
-    grid.style.maxWidth = '1152px';
-    grid.style.gridTemplateColumns = '90px repeat(720, 1.475px)';
-
+    // หน่วงเวลาให้ iPad ปรับหน้าจอตาม Style ใหม่และวาดรูปรอ
     setTimeout(() => {
-        // 🌟 เรียกใช้ html-to-image วาดรูปจาก DOM เป็น SVG โดยตรง
-        htmlToImage.toPng(area, { 
+        html2canvas(area, { 
+          scale: 2, 
+          useCORS: true,
           backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
-          pixelRatio: 2 // ภาพคมชัด
-        }).then(function (dataUrl) {
+          width: 1200,
+          windowWidth: 1200,
+          scrollY: 0,
+          scrollX: 0
+        }).then(c => {
           const a = document.createElement('a'); 
-          a.download = 'PSU_Schedule_HD.png'; 
-          a.href = dataUrl; 
+          a.download = 'PSU_Schedule.png'; 
+          a.href = c.toDataURL('image/png', 1.0); 
           a.click();
           
-          // คืนสภาพเว็บกลับไปเหมือนเดิม
+          // คืนค่าทุกอย่าง
+          document.head.removeChild(style);
           wrap.style.cssText = origWrapCss;
           area.style.cssText = origAreaCss;
           grid.style.cssText = origGridCss;
@@ -1407,13 +1408,13 @@ function downloadImage(){
           document.body.classList.remove('exporting'); 
           showToast('บันทึกรูปตารางเรียนสำเร็จ! 📸', 'success');
           if (tempFocusState) toggleFocusMode();
-        }).catch(function (error) {
-          console.error(error);
+        }).catch(err => {
+          console.error(err);
+          document.head.removeChild(style);
           wrap.style.cssText = origWrapCss;
           area.style.cssText = origAreaCss;
           grid.style.cssText = origGridCss;
           if(timeline) timeline.style.display = origTimelineDisplay; 
-          
           document.body.classList.remove('exporting'); 
           showToast('เกิดข้อผิดพลาดในการเซฟรูป', 'error');
         });
