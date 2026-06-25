@@ -1348,10 +1348,10 @@ function renderTasks() {
 }
 
 function downloadImage(){ 
-  // 🌟 เลื่อนจอไปมุมซ้ายบนสุด ป้องกัน iPad ตัดภาพ
+  // 🌟 เลื่อนจอไปบนสุด และรีเซ็ตการเลื่อนซ้ายขวา
   window.scrollTo(0,0);
   const wrap = document.querySelector('.schedule-wrap');
-  if(wrap) wrap.scrollTo(0,0);
+  if(wrap) wrap.scrollLeft = 0;
 
   document.body.classList.add('exporting'); 
   showToast('กำลังขยายสัดส่วนภาพให้กว้างสุด... 📸', 'info');
@@ -1373,35 +1373,40 @@ function downloadImage(){
     // ซ่อนเส้นเวลาก่อนถ่ายรูป
     if(timeline) timeline.style.display = 'none'; 
     
-    // 🌟 ปลดล็อค iPad: ดึงตารางลอยหน้าสุด และขยายความกว้างเป็น 1600px (กว้างสะใจ)
+    // 🌟 ปลดล็อค iPad: กางตารางออกแบบไม่ออกนอก Flow ปกติ (แก้ปัญหาตัดบนล่าง)
     wrap.style.overflow = 'visible'; 
+    wrap.style.width = '1600px'; // บังคับกางกล่องนอก
+    wrap.style.height = 'auto';  // ปล่อยให้ความสูงยืดตามจริง
     
-    area.style.position = 'absolute';
-    area.style.top = '0';
-    area.style.left = '0';
-    area.style.zIndex = '9999';
+    // ไม่ใช้ position absolute แล้ว!
     area.style.width = '1600px'; 
     area.style.minWidth = '1600px';
-    area.style.maxWidth = 'none';
+    area.style.height = 'auto'; // 🌟 ป้องกันโดนตัดความสูง
     area.style.padding = '24px'; 
     area.style.boxSizing = 'border-box';
+    area.style.margin = '0';
 
     // คำนวณพิกเซลตารางด้านใน (1600 ลบขอบ 24*2 = 1552px)
     grid.style.width = '1552px'; 
     grid.style.minWidth = '1552px';
-    grid.style.maxWidth = '1552px';
+    grid.style.height = 'auto'; // 🌟 ป้องกันแถวบีบเข้าหากัน
     
     // คำนวณสัดส่วนเวลา: (1552 - 90 หัวตาราง) / 720 นาที = 2.0305px ต่อนาที
     grid.style.gridTemplateColumns = '90px repeat(720, 2.0305px)';
 
-    // 🌟 หน่วงเวลา 1.2 วินาที ให้ตารางกางออกจนสุดก่อนแชะภาพ
+    // 🌟 หน่วงเวลาให้ตารางกางออกจนสุด Browser วาดภาพให้เสร็จ
     setTimeout(() => {
+        // 🌟 ดึง "ความสูงจริง" ของตารางมากำหนดให้กล้อง
+        const realHeight = area.scrollHeight;
+
         html2canvas(area, { 
-          scale: 2, // ความคมชัดระดับ 2x
+          scale: 2, 
           useCORS: true,
           backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
-          width: 1600, // บังคับกล้องให้กว้าง 1600px
-          windowWidth: 1600,
+          width: 1600,
+          height: realHeight, // 🌟 บังคับให้กล้องถ่ายจนสุดความสูงจริง
+          windowWidth: 1650,  // หลอก iPad ว่าเราจอใหญ่
+          windowHeight: realHeight + 100, // หลอก iPad ว่าเราจอสูง
           scrollX: 0,
           scrollY: 0
         }).then(c => {
@@ -1421,6 +1426,7 @@ function downloadImage(){
           if (tempFocusState) toggleFocusMode();
         }).catch(err => {
           console.error(err);
+          // กรณี Error คืนค่าเดิม
           wrap.style.cssText = origWrapCss;
           area.style.cssText = origAreaCss;
           grid.style.cssText = origGridCss;
