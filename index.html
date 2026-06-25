@@ -1348,13 +1348,13 @@ function renderTasks() {
 }
 
 function downloadImage(){ 
-  // 🌟 1. เลื่อนจอและกล่องตารางไปซ้ายสุด ป้องกัน iPad ตัดภาพแหว่ง
+  // 🌟 เลื่อนจอไปมุมซ้ายบนสุด ป้องกัน iPad ตัดภาพ
   window.scrollTo(0,0);
   const wrap = document.querySelector('.schedule-wrap');
   if(wrap) wrap.scrollTo(0,0);
 
   document.body.classList.add('exporting'); 
-  showToast('กำลังตั้งค่าสัดส่วนกล้อง... (รอสักครู่)', 'info');
+  showToast('กำลังขยายสัดส่วนภาพให้กว้างสุด... 📸', 'info');
   
   const tempFocusState = isFocusMode; 
   if (tempFocusState) toggleFocusMode();
@@ -1362,67 +1362,74 @@ function downloadImage(){
   setTimeout(() => {
     const area = document.getElementById('capture-area');
     const grid = document.getElementById('Schedule');
-    const timeline = document.getElementById('CurrentTimeLine'); // 🌟 ดึงตัวแปรเส้นบอกเวลา
+    const timeline = document.getElementById('CurrentTimeLine'); 
     
-    // 🌟 2. จำการตั้งค่าตารางเดิมเอาไว้
+    // จำค่าเดิมเอาไว้
     const origWrapCss = wrap.style.cssText;
     const origAreaCss = area.style.cssText;
     const origGridCss = grid.style.cssText;
-    const origTimelineDisplay = timeline ? timeline.style.display : 'none'; // 🌟 จำสถานะว่าเส้นเคยโชว์อยู่ไหม
+    const origTimelineDisplay = timeline ? timeline.style.display : 'none'; 
     
-    // 🌟 ซ่อนเส้นเวลาก่อนถ่ายรูป 📸
+    // ซ่อนเส้นเวลาก่อนถ่ายรูป
     if(timeline) timeline.style.display = 'none'; 
     
-    // 🌟 3. ปลดล็อค iPad: เปลี่ยนสัดส่วน 1fr เป็นค่า Pixel ตายตัวกว้าง 1200px
+    // 🌟 ปลดล็อค iPad: ดึงตารางลอยหน้าสุด และขยายความกว้างเป็น 1600px (กว้างสะใจ)
     wrap.style.overflow = 'visible'; 
-    wrap.style.width = '1200px';
     
-    area.style.width = '1200px';
-    area.style.minWidth = '1200px';
-    area.style.padding = '16px';
-    
-    grid.style.width = '1168px'; // (กว้าง 1200 ลบขอบ padding 16*2)
-    grid.style.minWidth = '1168px';
-    // แปลง 1fr เป็นพิกเซลเป๊ะๆ: (1168px - 90px หัวตาราง) / 720 นาที = 1.497px
-    grid.style.gridTemplateColumns = '90px repeat(720, 1.497px)';
+    area.style.position = 'absolute';
+    area.style.top = '0';
+    area.style.left = '0';
+    area.style.zIndex = '9999';
+    area.style.width = '1600px'; 
+    area.style.minWidth = '1600px';
+    area.style.maxWidth = 'none';
+    area.style.padding = '24px'; 
+    area.style.boxSizing = 'border-box';
 
-    // 🌟 4. หน่วงเวลา 1 วินาทีเต็ม ให้ระบบ iPad วาดภาพให้เสร็จ 100%
+    // คำนวณพิกเซลตารางด้านใน (1600 ลบขอบ 24*2 = 1552px)
+    grid.style.width = '1552px'; 
+    grid.style.minWidth = '1552px';
+    grid.style.maxWidth = '1552px';
+    
+    // คำนวณสัดส่วนเวลา: (1552 - 90 หัวตาราง) / 720 นาที = 2.0305px ต่อนาที
+    grid.style.gridTemplateColumns = '90px repeat(720, 2.0305px)';
+
+    // 🌟 หน่วงเวลา 1.2 วินาที ให้ตารางกางออกจนสุดก่อนแชะภาพ
     setTimeout(() => {
         html2canvas(area, { 
-          scale: 2, // เพิ่มความคมชัดระดับ HD
+          scale: 2, // ความคมชัดระดับ 2x
           useCORS: true,
           backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
-          width: 1200, 
-          windowWidth: 1200,
+          width: 1600, // บังคับกล้องให้กว้าง 1600px
+          windowWidth: 1600,
           scrollX: 0,
           scrollY: 0
         }).then(c => {
           const a = document.createElement('a'); 
-          a.download = 'PSU_Schedule.png'; 
+          a.download = 'PSU_Schedule_HD.png'; 
           a.href = c.toDataURL('image/png', 1.0); 
           a.click();
           
-          // 🌟 5. คืนค่าหน้าเว็บและเส้นเวลากลับสู่สภาพปกติ
+          // คืนค่าหน้าเว็บกลับสู่สภาพปกติ
           wrap.style.cssText = origWrapCss;
           area.style.cssText = origAreaCss;
           grid.style.cssText = origGridCss;
-          if(timeline) timeline.style.display = origTimelineDisplay; // 🌟 คืนค่าเส้นเวลาให้กลับมาโชว์เหมือนเดิม
+          if(timeline) timeline.style.display = origTimelineDisplay; 
           
           document.body.classList.remove('exporting'); 
-          showToast('บันทึกรูปตารางเรียนสำเร็จ! 📸', 'success');
+          showToast('บันทึกรูปตารางเรียนแบบกว้างพิเศษสำเร็จ! 📸', 'success');
           if (tempFocusState) toggleFocusMode();
         }).catch(err => {
           console.error(err);
-          // กรณี Error ก็ต้องคืนค่าเดิมด้วย
           wrap.style.cssText = origWrapCss;
           area.style.cssText = origAreaCss;
           grid.style.cssText = origGridCss;
-          if(timeline) timeline.style.display = origTimelineDisplay; // 🌟 คืนค่าเส้นเวลา
+          if(timeline) timeline.style.display = origTimelineDisplay; 
           
           document.body.classList.remove('exporting'); 
           showToast('เกิดข้อผิดพลาดในการเซฟรูป', 'error');
         });
-    }, 1000); // หน่วงเวลา 1 วินาทีให้ iPad ดึงสติวาดภาพใหม่
+    }, 1200); // รอให้ระบบ Render ภาพกว้างๆ จนเสร็จ
   }, 100); 
 }
 
