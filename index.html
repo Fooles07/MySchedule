@@ -1347,96 +1347,83 @@ function renderTasks() {
   document.getElementById('countC').textContent = countC;
 }
 
-function downloadImage(){ 
-  // 🌟 เลื่อนจอไปบนสุด และรีเซ็ตการเลื่อนซ้ายขวา
-  window.scrollTo(0,0);
-  const wrap = document.querySelector('.schedule-wrap');
-  if(wrap) wrap.scrollLeft = 0;
+function downloadImage() {
+  document.body.classList.add('exporting');
+  showToast('กำลังสร้างรูปภาพตารางเรียน...', 'info');
 
-  document.body.classList.add('exporting'); 
-  showToast('กำลังขยายสัดส่วนภาพให้กว้างสุด... 📸', 'info');
-  
-  const tempFocusState = isFocusMode; 
-  if (tempFocusState) toggleFocusMode();
-  
   setTimeout(() => {
-    const area = document.getElementById('capture-area');
-    const grid = document.getElementById('Schedule');
-    const timeline = document.getElementById('CurrentTimeLine'); 
-    
-    // จำค่าเดิมเอาไว้
-    const origWrapCss = wrap.style.cssText;
-    const origAreaCss = area.style.cssText;
-    const origGridCss = grid.style.cssText;
-    const origTimelineDisplay = timeline ? timeline.style.display : 'none'; 
-    
-    // ซ่อนเส้นเวลาก่อนถ่ายรูป
-    if(timeline) timeline.style.display = 'none'; 
-    
-    // 🌟 ปลดล็อค iPad: กางตารางออกแบบไม่ออกนอก Flow ปกติ (แก้ปัญหาตัดบนล่าง)
-    wrap.style.overflow = 'visible'; 
-    wrap.style.width = '1600px'; // บังคับกางกล่องนอก
-    wrap.style.height = 'auto';  // ปล่อยให้ความสูงยืดตามจริง
-    
-    // ไม่ใช้ position absolute แล้ว!
-    area.style.width = '1600px'; 
-    area.style.minWidth = '1600px';
-    area.style.height = 'auto'; // 🌟 ป้องกันโดนตัดความสูง
-    area.style.padding = '24px'; 
-    area.style.boxSizing = 'border-box';
-    area.style.margin = '0';
+    // 1. ดึงกล่องตารางต้นฉบับ
+    const originalArea = document.getElementById('capture-area');
 
-    // คำนวณพิกเซลตารางด้านใน (1600 ลบขอบ 24*2 = 1552px)
-    grid.style.width = '1552px'; 
-    grid.style.minWidth = '1552px';
-    grid.style.height = 'auto'; // 🌟 ป้องกันแถวบีบเข้าหากัน
-    
-    // คำนวณสัดส่วนเวลา: (1552 - 90 หัวตาราง) / 720 นาที = 2.0305px ต่อนาที
-    grid.style.gridTemplateColumns = '90px repeat(720, 2.0305px)';
+    // 2. 🌟 สร้างร่างโคลน (Clone) ของตารางขึ้นมา
+    const cloneArea = originalArea.cloneNode(true);
+    cloneArea.id = "capture-clone";
 
-    // 🌟 หน่วงเวลาให้ตารางกางออกจนสุด Browser วาดภาพให้เสร็จ
+    // 3. 🌟 สร้างกล่องหุ้มร่างโคลน ซ่อนไว้หลังจอ (z-index: -9999)
+    const cloneWrapper = document.createElement('div');
+    cloneWrapper.style.position = 'absolute';
+    cloneWrapper.style.top = '0';
+    cloneWrapper.style.left = '0';
+    cloneWrapper.style.width = '1200px'; // ล็อคความกว้าง 1200px
+    cloneWrapper.style.zIndex = '-9999'; 
+    cloneWrapper.style.background = isDark ? '#1c1c1e' : '#ffffff';
+    cloneWrapper.style.padding = '24px';
+    cloneWrapper.style.boxSizing = 'border-box';
+
+    // 4. บังคับร่างโคลนให้มีขนาดคงที่ (Fixed Pixels) 
+    cloneArea.style.width = '100%';
+    cloneArea.style.minWidth = 'auto';
+    cloneArea.style.maxWidth = 'none';
+    cloneArea.style.height = 'max-content';
+    cloneArea.style.padding = '0';
+
+    // 5. บังคับตารางข้างใน (Grid) ให้ใช้พิกเซลแทนสัดส่วน 1fr เพื่อไม่ให้ iPad งง
+    const cloneGrid = cloneArea.querySelector('#Schedule');
+    if (cloneGrid) {
+      cloneGrid.style.width = '1152px'; // (1200 - padding ซ้ายขวา 48)
+      cloneGrid.style.minWidth = '1152px';
+      cloneGrid.style.height = 'max-content';
+      
+      // คำนวณพิกเซล: (1152px - หัวตาราง 90px) / 720 นาที = 1.475px ต่อนาที
+      cloneGrid.style.gridTemplateColumns = '90px repeat(720, 1.475px)';
+      cloneGrid.style.backgroundImage = 'repeating-linear-gradient(to right, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 88.5px)'; // 88.5px = 1.475 * 60 นาที
+      cloneGrid.style.backgroundSize = '1062px 100%'; // 1152 - 90
+    }
+
+    // 6. ซ่อนเส้นเวลาออกจากร่างโคลน
+    const cloneTimeline = cloneArea.querySelector('#CurrentTimeLine');
+    if (cloneTimeline) cloneTimeline.style.display = 'none';
+
+    // 7. นำร่างโคลนแปะลงในเว็บ (แบบซ่อนอยู่)
+    cloneWrapper.appendChild(cloneArea);
+    document.body.appendChild(cloneWrapper);
+
+    // 8. 📸 สั่งให้กล้องถ่ายรูปร่างโคลน
     setTimeout(() => {
-        // 🌟 ดึง "ความสูงจริง" ของตารางมากำหนดให้กล้อง
-        const realHeight = area.scrollHeight;
+      html2canvas(cloneWrapper, {
+        scale: 2, // ภาพคมชัด
+        useCORS: true,
+        backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
+        width: 1200, // บังคับกล้องกว้าง 1200
+        windowWidth: 1200
+      }).then(canvas => {
+        const a = document.createElement('a');
+        a.download = 'PSU_Schedule.png';
+        a.href = canvas.toDataURL('image/png', 1.0);
+        a.click();
 
-        html2canvas(area, { 
-          scale: 2, 
-          useCORS: true,
-          backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
-          width: 1600,
-          height: realHeight, // 🌟 บังคับให้กล้องถ่ายจนสุดความสูงจริง
-          windowWidth: 1650,  // หลอก iPad ว่าเราจอใหญ่
-          windowHeight: realHeight + 100, // หลอก iPad ว่าเราจอสูง
-          scrollX: 0,
-          scrollY: 0
-        }).then(c => {
-          const a = document.createElement('a'); 
-          a.download = 'PSU_Schedule_HD.png'; 
-          a.href = c.toDataURL('image/png', 1.0); 
-          a.click();
-          
-          // คืนค่าหน้าเว็บกลับสู่สภาพปกติ
-          wrap.style.cssText = origWrapCss;
-          area.style.cssText = origAreaCss;
-          grid.style.cssText = origGridCss;
-          if(timeline) timeline.style.display = origTimelineDisplay; 
-          
-          document.body.classList.remove('exporting'); 
-          showToast('บันทึกรูปตารางเรียนแบบกว้างพิเศษสำเร็จ! 📸', 'success');
-          if (tempFocusState) toggleFocusMode();
-        }).catch(err => {
-          console.error(err);
-          // กรณี Error คืนค่าเดิม
-          wrap.style.cssText = origWrapCss;
-          area.style.cssText = origAreaCss;
-          grid.style.cssText = origGridCss;
-          if(timeline) timeline.style.display = origTimelineDisplay; 
-          
-          document.body.classList.remove('exporting'); 
-          showToast('เกิดข้อผิดพลาดในการเซฟรูป', 'error');
-        });
-    }, 1200); // รอให้ระบบ Render ภาพกว้างๆ จนเสร็จ
-  }, 100); 
+        // 9. ถ่ายเสร็จ ลบร่างโคลนทิ้ง ทำความสะอาด
+        document.body.removeChild(cloneWrapper);
+        document.body.classList.remove('exporting');
+        showToast('บันทึกรูปสำเร็จ! สัดส่วนเป๊ะ 📸', 'success');
+      }).catch(err => {
+        console.error(err);
+        document.body.removeChild(cloneWrapper);
+        document.body.classList.remove('exporting');
+        showToast('เกิดข้อผิดพลาดในการเซฟรูป', 'error');
+      });
+    }, 500); // รอให้ระบบสร้างร่างโคลนเสร็จ 0.5 วินาที
+  }, 100);
 }
 
 function toggleTheme() { 
