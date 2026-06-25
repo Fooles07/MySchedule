@@ -1362,14 +1362,19 @@ function downloadImage(){
   setTimeout(() => {
     const area = document.getElementById('capture-area');
     const grid = document.getElementById('Schedule');
+    const timeline = document.getElementById('CurrentTimeLine'); // 🌟 ดึงตัวแปรเส้นบอกเวลา
     
     // 🌟 2. จำการตั้งค่าตารางเดิมเอาไว้
     const origWrapCss = wrap.style.cssText;
     const origAreaCss = area.style.cssText;
     const origGridCss = grid.style.cssText;
+    const origTimelineDisplay = timeline ? timeline.style.display : 'none'; // 🌟 จำสถานะว่าเส้นเคยโชว์อยู่ไหม
+    
+    // 🌟 ซ่อนเส้นเวลาก่อนถ่ายรูป 📸
+    if(timeline) timeline.style.display = 'none'; 
     
     // 🌟 3. ปลดล็อค iPad: เปลี่ยนสัดส่วน 1fr เป็นค่า Pixel ตายตัวกว้าง 1200px
-    wrap.style.overflow = 'visible'; // ปลดล็อคการซ่อนภาพ
+    wrap.style.overflow = 'visible'; 
     wrap.style.width = '1200px';
     
     area.style.width = '1200px';
@@ -1381,7 +1386,7 @@ function downloadImage(){
     // แปลง 1fr เป็นพิกเซลเป๊ะๆ: (1168px - 90px หัวตาราง) / 720 นาที = 1.497px
     grid.style.gridTemplateColumns = '90px repeat(720, 1.497px)';
 
-    // 🌟 4. หน่วงเวลา 1 วินาทีเต็ม! ให้ระบบ iPad วาดภาพให้เสร็จ 100%
+    // 🌟 4. หน่วงเวลา 1 วินาทีเต็ม ให้ระบบ iPad วาดภาพให้เสร็จ 100%
     setTimeout(() => {
         html2canvas(area, { 
           scale: 2, // เพิ่มความคมชัดระดับ HD
@@ -1397,23 +1402,27 @@ function downloadImage(){
           a.href = c.toDataURL('image/png', 1.0); 
           a.click();
           
-          // 🌟 5. คืนค่าหน้าเว็บกลับสู่สภาพปกติแบบไร้รอยต่อ
+          // 🌟 5. คืนค่าหน้าเว็บและเส้นเวลากลับสู่สภาพปกติ
           wrap.style.cssText = origWrapCss;
           area.style.cssText = origAreaCss;
           grid.style.cssText = origGridCss;
+          if(timeline) timeline.style.display = origTimelineDisplay; // 🌟 คืนค่าเส้นเวลาให้กลับมาโชว์เหมือนเดิม
           
           document.body.classList.remove('exporting'); 
           showToast('บันทึกรูปตารางเรียนสำเร็จ! 📸', 'success');
           if (tempFocusState) toggleFocusMode();
         }).catch(err => {
           console.error(err);
+          // กรณี Error ก็ต้องคืนค่าเดิมด้วย
           wrap.style.cssText = origWrapCss;
           area.style.cssText = origAreaCss;
           grid.style.cssText = origGridCss;
+          if(timeline) timeline.style.display = origTimelineDisplay; // 🌟 คืนค่าเส้นเวลา
+          
           document.body.classList.remove('exporting'); 
           showToast('เกิดข้อผิดพลาดในการเซฟรูป', 'error');
         });
-    }, 1000); // หน่วงเวลาให้ iPad ดึงสติวาดภาพใหม่
+    }, 1000); // หน่วงเวลา 1 วินาทีให้ iPad ดึงสติวาดภาพใหม่
   }, 100); 
 }
 
