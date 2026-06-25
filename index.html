@@ -1348,52 +1348,52 @@ function renderTasks() {
 }
 
 function downloadImage(){ 
-  window.scrollTo(0,0); // เลื่อนจอไปบนสุดกันรูปแหว่ง
+  window.scrollTo(0,0); // เลื่อนจอไปบนสุด
   document.body.classList.add('exporting'); 
   showToast('กำลังเตรียมรูปภาพ (รอสักครู่)...', 'info');
   const tempFocusState = isFocusMode; 
   if (tempFocusState) toggleFocusMode();
   
   setTimeout(() => {
-    const area = document.getElementById('capture-area');
     const wrap = document.querySelector('.schedule-wrap');
+    const area = document.getElementById('capture-area');
     const grid = document.getElementById('Schedule');
     
     // 🌟 1. จำการตั้งค่าหน้าจอเดิมไว้ก่อน
-    const origAreaCss = area.style.cssText;
     const origWrapCss = wrap.style.cssText;
+    const origAreaCss = area.style.cssText;
     const origGridCss = grid.style.cssText;
     
-    // 🌟 2. ปลดล็อค iPad: บังคับตารางลอยขึ้นมาและกางเต็ม 1400px
-    wrap.style.overflow = 'visible';
-    area.style.position = 'absolute';
-    area.style.top = '0';
-    area.style.left = '0';
-    area.style.width = '1400px';
-    area.style.maxWidth = 'none';
-    area.style.zIndex = '9999'; // ลอยไว้หน้าสุด
+    // 🌟 2. ปลดล็อค iPad: ทำลายกล่อง Scroll และกางตารางให้กว้าง 1250px (สัดส่วน 12 ชม. พอดีเป๊ะ)
+    wrap.style.overflow = 'visible'; 
+    wrap.style.width = '1250px';
     
-    // บังคับ Grid ให้กว้าง 1400px เป๊ะๆ ป้องกันช่องเบี้ยว
-    grid.style.width = '1400px';
-    grid.style.minWidth = '1400px';
+    area.style.width = '1250px';
+    area.style.minWidth = '1250px';
+    area.style.maxWidth = 'none';
+    
+    grid.style.width = '1250px';
+    grid.style.minWidth = '1250px';
 
-    // 🌟 3. หน่วงเวลา 0.6 วินาที ให้ iPad วาดภาพที่ซ่อนอยู่ให้เสร็จก่อนถ่าย
+    // 🌟 3. หน่วงเวลา 0.8 วินาที ให้ iPad วาดภาพส่วนที่ซ่อนอยู่ให้เสร็จก่อนถ่าย
     setTimeout(() => {
         html2canvas(area, { 
           scale: 2, 
           useCORS: true,
           backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
-          width: 1400, // บังคับรูปกว้าง 1400px
-          windowWidth: 1400
+          width: area.scrollWidth,  // บังคับให้กล้องกว้างเท่าตาราง
+          height: area.scrollHeight, // บังคับให้กล้องสูงเท่าตาราง
+          scrollY: 0,
+          scrollX: 0
         }).then(c => {
           const a = document.createElement('a'); 
           a.download = 'PSU_Schedule.png'; 
           a.href = c.toDataURL('image/png', 1.0); 
           a.click();
           
-          // 🌟 4. คืนค่าหน้าเว็บกลับสู่สภาพเดิมให้เนียนที่สุด
-          area.style.cssText = origAreaCss;
+          // 🌟 4. คืนค่าหน้าเว็บกลับสู่สภาพเดิมแบบไร้รอยต่อ
           wrap.style.cssText = origWrapCss;
+          area.style.cssText = origAreaCss;
           grid.style.cssText = origGridCss;
           
           document.body.classList.remove('exporting'); 
@@ -1401,13 +1401,14 @@ function downloadImage(){
           if (tempFocusState) toggleFocusMode();
         }).catch(err => {
           // กรณี Error ก็ต้องคืนค่าเดิมด้วย
-          area.style.cssText = origAreaCss;
+          console.error(err);
           wrap.style.cssText = origWrapCss;
+          area.style.cssText = origAreaCss;
           grid.style.cssText = origGridCss;
           document.body.classList.remove('exporting'); 
           showToast('เกิดข้อผิดพลาดในการเซฟรูป', 'error');
         });
-    }, 600); // <--- เคล็ดลับอยู่ตรงเวลา 600ms นี้ครับ
+    }, 800); // <--- เคล็ดลับอยู่ตรงการหน่วงเวลา 800ms ให้ iPad ดึงสติครับ
   }, 100); 
 }
 
