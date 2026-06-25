@@ -6,7 +6,8 @@
 <title>ตารางเรียน PSU & Task Manager</title>
 <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700;800;900&family=Outfit:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <script charset="utf-8" src="https://static.line-scdn.net/liff/edge/2/sdk.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/html-to-image/1.11.11/html-to-image.min.js"></script>
 
 <script>
 window.onerror = function(msg, url, line, col, error) {
@@ -56,13 +57,12 @@ h1{font-family:'Outfit',sans-serif;font-size:26px;font-weight:700;color:var(--te
 .panel{background:var(--panel);border-radius:20px;padding:24px;margin-bottom:20px;box-shadow:var(--shadow); transition: background 0.3s ease;}
 
 /* ========================================= */
-/* 📅 ระบบ Schedule Grid ยืดหยุ่น 100% (Responsive) */
+/* 📅 ระบบ Schedule Grid ยืดหยุ่น 100% */
 /* ========================================= */
 .schedule-wrap{overflow-x:auto;border-radius:16px;scrollbar-width:none;}
 .schedule-wrap::-webkit-scrollbar { display: none; }
 #capture-area{background:var(--panel);border-radius:16px;padding:12px; width:100%; min-width:fit-content;}
 
-/* จุดสำคัญ: ใช้ 1fr แบ่งคอลัมน์ และวาดพื้นหลังตามสัดส่วนจอ */
 .schedule-grid {
     position:relative; 
     display:grid; 
@@ -1347,83 +1347,78 @@ function renderTasks() {
   document.getElementById('countC').textContent = countC;
 }
 
-function downloadImage() {
-  document.body.classList.add('exporting');
-  showToast('กำลังสร้างรูปภาพตารางเรียน...', 'info');
+// 🌟🌟 ฟังก์ชันใหม่: ใช้กล้อง html-to-image ถ่ายรูปเป๊ะ 100%
+function downloadImage(){ 
+  window.scrollTo(0,0);
+  const wrap = document.querySelector('.schedule-wrap');
+  if(wrap) wrap.scrollLeft = 0;
 
+  document.body.classList.add('exporting'); 
+  showToast('กำลังประมวลผลรูปภาพ (วิธีใหม่)... 📸', 'info');
+  
+  const tempFocusState = isFocusMode; 
+  if (tempFocusState) toggleFocusMode();
+  
   setTimeout(() => {
-    // 1. ดึงกล่องตารางต้นฉบับ
-    const originalArea = document.getElementById('capture-area');
+    const area = document.getElementById('capture-area');
+    const grid = document.getElementById('Schedule');
+    const timeline = document.getElementById('CurrentTimeLine'); 
+    
+    // จำค่าเดิมไว้ทั้งหมด
+    const origWrapCss = wrap.style.cssText;
+    const origAreaCss = area.style.cssText;
+    const origGridCss = grid.style.cssText;
+    const origTimelineDisplay = timeline ? timeline.style.display : 'none'; 
+    
+    // ซ่อนเส้นเวลาก่อนถ่าย
+    if(timeline) timeline.style.display = 'none'; 
+    
+    // 🌟 ปลดล็อค iPad: กางตารางให้เต็มที่ 1200px แบบตายตัว
+    wrap.style.overflow = 'visible'; 
+    
+    area.style.width = '1200px'; 
+    area.style.minWidth = '1200px';
+    area.style.maxWidth = 'none';
+    area.style.padding = '24px'; 
 
-    // 2. 🌟 สร้างร่างโคลน (Clone) ของตารางขึ้นมา
-    const cloneArea = originalArea.cloneNode(true);
-    cloneArea.id = "capture-clone";
+    // 🌟 เปลี่ยนตารางจากสัดส่วน 1fr -> เป็นพิกเซลเป๊ะๆ เพื่อให้ Safari ไม่สับสน
+    grid.style.width = '1152px';
+    grid.style.minWidth = '1152px';
+    grid.style.maxWidth = '1152px';
+    grid.style.gridTemplateColumns = '90px repeat(720, 1.475px)';
 
-    // 3. 🌟 สร้างกล่องหุ้มร่างโคลน ซ่อนไว้หลังจอ (z-index: -9999)
-    const cloneWrapper = document.createElement('div');
-    cloneWrapper.style.position = 'absolute';
-    cloneWrapper.style.top = '0';
-    cloneWrapper.style.left = '0';
-    cloneWrapper.style.width = '1200px'; // ล็อคความกว้าง 1200px
-    cloneWrapper.style.zIndex = '-9999'; 
-    cloneWrapper.style.background = isDark ? '#1c1c1e' : '#ffffff';
-    cloneWrapper.style.padding = '24px';
-    cloneWrapper.style.boxSizing = 'border-box';
-
-    // 4. บังคับร่างโคลนให้มีขนาดคงที่ (Fixed Pixels) 
-    cloneArea.style.width = '100%';
-    cloneArea.style.minWidth = 'auto';
-    cloneArea.style.maxWidth = 'none';
-    cloneArea.style.height = 'max-content';
-    cloneArea.style.padding = '0';
-
-    // 5. บังคับตารางข้างใน (Grid) ให้ใช้พิกเซลแทนสัดส่วน 1fr เพื่อไม่ให้ iPad งง
-    const cloneGrid = cloneArea.querySelector('#Schedule');
-    if (cloneGrid) {
-      cloneGrid.style.width = '1152px'; // (1200 - padding ซ้ายขวา 48)
-      cloneGrid.style.minWidth = '1152px';
-      cloneGrid.style.height = 'max-content';
-      
-      // คำนวณพิกเซล: (1152px - หัวตาราง 90px) / 720 นาที = 1.475px ต่อนาที
-      cloneGrid.style.gridTemplateColumns = '90px repeat(720, 1.475px)';
-      cloneGrid.style.backgroundImage = 'repeating-linear-gradient(to right, var(--grid-line) 0, var(--grid-line) 1px, transparent 1px, transparent 88.5px)'; // 88.5px = 1.475 * 60 นาที
-      cloneGrid.style.backgroundSize = '1062px 100%'; // 1152 - 90
-    }
-
-    // 6. ซ่อนเส้นเวลาออกจากร่างโคลน
-    const cloneTimeline = cloneArea.querySelector('#CurrentTimeLine');
-    if (cloneTimeline) cloneTimeline.style.display = 'none';
-
-    // 7. นำร่างโคลนแปะลงในเว็บ (แบบซ่อนอยู่)
-    cloneWrapper.appendChild(cloneArea);
-    document.body.appendChild(cloneWrapper);
-
-    // 8. 📸 สั่งให้กล้องถ่ายรูปร่างโคลน
     setTimeout(() => {
-      html2canvas(cloneWrapper, {
-        scale: 2, // ภาพคมชัด
-        useCORS: true,
-        backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
-        width: 1200, // บังคับกล้องกว้าง 1200
-        windowWidth: 1200
-      }).then(canvas => {
-        const a = document.createElement('a');
-        a.download = 'PSU_Schedule.png';
-        a.href = canvas.toDataURL('image/png', 1.0);
-        a.click();
-
-        // 9. ถ่ายเสร็จ ลบร่างโคลนทิ้ง ทำความสะอาด
-        document.body.removeChild(cloneWrapper);
-        document.body.classList.remove('exporting');
-        showToast('บันทึกรูปสำเร็จ! สัดส่วนเป๊ะ 📸', 'success');
-      }).catch(err => {
-        console.error(err);
-        document.body.removeChild(cloneWrapper);
-        document.body.classList.remove('exporting');
-        showToast('เกิดข้อผิดพลาดในการเซฟรูป', 'error');
-      });
-    }, 500); // รอให้ระบบสร้างร่างโคลนเสร็จ 0.5 วินาที
-  }, 100);
+        // 🌟 เรียกใช้ html-to-image วาดรูปจาก DOM เป็น SVG โดยตรง
+        htmlToImage.toPng(area, { 
+          backgroundColor: isDark ? '#1c1c1e' : '#ffffff',
+          pixelRatio: 2 // ภาพคมชัด
+        }).then(function (dataUrl) {
+          const a = document.createElement('a'); 
+          a.download = 'PSU_Schedule_HD.png'; 
+          a.href = dataUrl; 
+          a.click();
+          
+          // คืนสภาพเว็บกลับไปเหมือนเดิม
+          wrap.style.cssText = origWrapCss;
+          area.style.cssText = origAreaCss;
+          grid.style.cssText = origGridCss;
+          if(timeline) timeline.style.display = origTimelineDisplay; 
+          
+          document.body.classList.remove('exporting'); 
+          showToast('บันทึกรูปตารางเรียนสำเร็จ! 📸', 'success');
+          if (tempFocusState) toggleFocusMode();
+        }).catch(function (error) {
+          console.error(error);
+          wrap.style.cssText = origWrapCss;
+          area.style.cssText = origAreaCss;
+          grid.style.cssText = origGridCss;
+          if(timeline) timeline.style.display = origTimelineDisplay; 
+          
+          document.body.classList.remove('exporting'); 
+          showToast('เกิดข้อผิดพลาดในการเซฟรูป', 'error');
+        });
+    }, 800); 
+  }, 100); 
 }
 
 function toggleTheme() { 
